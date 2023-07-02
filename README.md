@@ -43,3 +43,8 @@ Kaite already provides some predefined functions for you. Here they are:
 `input` -> Takes a single variable as an argument and prompts the user to input a string, which is then stored in the specified variable.
 
 `global` -> Inside a `when` block, you have a local scope. However, if you want to make a variable accessible globally, you can use the `global` keyword followed by the variable name as an argument. In the global scope, the variable can be accessed from anywhere in the program.
+
+# Building Kaite
+To build Kaite, you can execute the "build.bat" script (yes, I know, it's a bit cringe). However, if you prefer, you can use any C compiler of your choice by running the following command in your terminal: `gcc main.c -o kaite.exe -O2`. 
+
+I hope you enjoy using Kaite! Have a great day :)
