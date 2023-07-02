@@ -1,5 +1,5 @@
 # Kaite ( pronounced Kite )
- Kaite is a simple language to build projects and execute command-line commands
+ Kaite is a simple, open-source language to build projects and execute command-line commands
 
 # Why Kaite?
  I hate `batch`, that is why it is here
