@@ -1,0 +1,322 @@
+#ifndef PARSER_H_
+#define PARSER_H_
+
+#include "lexer.h"
+
+/*
+    conditional -> "when" STRING program "end";
+    program -> list[expresion];
+    expresion -> group | set | function;
+    function -> ID group;
+    group -> "(" list[literal] ")";
+    Set -> ID "=" literal;
+    literal -> STRING | ID;
+*/
+
+typedef enum
+{
+    Program,
+    Group,
+    Set,
+    Function,
+    Conditional,
+    Literal
+}Expr_Type;
+
+struct Expr;
+typedef struct
+{
+    size_t heap;
+    size_t size;
+    struct Expr* content;
+}Expr_List;
+
+typedef enum
+{
+    LITERAL_String,
+    LITERAL_Id
+}Literal_Type;
+
+typedef struct Expr
+{
+    Expr_Type type;
+    union
+    {
+		struct
+		{
+			Expr_List program;
+		}Program;
+
+		struct{
+            Expr_List literals;
+		}Group;
+
+		struct{
+			String ID;
+            struct Expr* literal;
+		}Set;
+
+		struct{
+			String ID;
+			struct Expr* group;
+		}Function;
+
+        struct{
+            String ID; // when ID [program] end
+			struct Expr* program;
+		}Conditional;
+
+        struct{
+            Literal_Type type;
+            String value;
+        }Literal;
+    }e;
+}Expr;
+
+void Expr_List_Init(Expr_List* list)
+{
+    list->heap = 1;
+    list->size = 0;
+    list->content = malloc(list->heap * sizeof(Expr));
+    if (!list->content)
+    {
+        printf("ERROR: Couldn't allocate memory for Expr_List\n");
+        exit(1);
+    }
+}
+
+void Expr_List_Push(Expr_List* list, Expr expr)
+{
+    if (list->size >= list->heap)
+    {
+        list->heap *= 2;
+        list->content = realloc(list->content, list->heap * sizeof(Expr));
+        if (!list->content)
+        {
+            printf("ERROR: Couldn't allocate memory for Expr_List\n");
+            exit(1);
+        }
+    }
+    list->content[list->size++] = expr;
+}
+
+Expr Expr_Program()
+{
+    Expr expr;
+    expr.type = Program;
+    Expr_List_Init(&expr.e.Program.program);
+    return expr;
+}
+
+Expr Expr_Group(Expr_List list)
+{
+    Expr expr;
+    expr.type = Group;
+    expr.e.Group.literals.size = list.size;
+    expr.e.Group.literals.content = malloc(list.size * sizeof(Expr));
+
+    if (expr.e.Group.literals.content == NULL)
+    {
+        printf("ERROR: Couldn't allocate memory for Token_List\n");
+        exit(1);
+    }
+
+    for (size_t i = 0; i < list.size; i++)
+    {
+        expr.e.Group.literals.content[i] = list.content[i];
+    }
+
+    return expr;
+}
+
+Expr Expr_Function(String ID, Expr group)
+{
+    Expr expr;
+    expr.type = Function;
+    expr.e.Function.ID = ID;
+
+    expr.e.Function.group = malloc(sizeof(Expr));
+    expr.e.Function.group->e.Group = group.e.Group;
+    return expr;
+}
+
+
+Expr Expr_Literal(Token tok)
+{
+    Expr literal;
+    literal.type = Literal;
+    literal.e.Literal.value = tok.str;
+    switch(tok.type)
+    {
+        case TOK_STR:
+        {
+            literal.e.Literal.type = LITERAL_String;
+        }
+        break;
+        
+        case TOK_ID:
+        {
+            literal.e.Literal.type = LITERAL_Id;
+        }
+        break;
+
+        default:
+        {
+            printf("ERROR: Can't set Literal to Token Type!!! ( %d )\n", tok.type);
+            exit(1);
+        }
+        break;
+    }
+    return literal;
+}
+
+Expr Expr_Set(String ID, Expr literal)
+{
+    Expr expr;
+    expr.type = Set;
+    expr.e.Set.ID = ID;
+    expr.e.Set.literal = malloc(sizeof(Expr));
+    expr.e.Set.literal->e.Literal = literal.e.Literal;
+    return expr;
+}
+
+
+Expr Expr_Conditional(String ID, Expr program)
+{
+    Expr expr;
+    expr.type = Conditional;
+    expr.e.Conditional.ID = ID;
+    
+    expr.e.Conditional.program = malloc(sizeof(Expr));
+    if (expr.e.Conditional.program == NULL)
+    {
+        printf("ERROR: Couldn't allocate memory for Program\n");
+        exit(1);
+    }
+
+    expr.e.Conditional.program->e.Program.program.content = malloc(program.e.Program.program.size * sizeof(Expr));
+    if (expr.e.Conditional.program->e.Program.program.content == NULL)
+    {
+        printf("ERROR: Couldn't allocate memory for Program content\n");
+        exit(1);
+    }
+
+    expr.e.Conditional.program->e.Program.program.size = program.e.Program.program.size;
+    expr.e.Conditional.program->e.Program.program.heap = program.e.Program.program.size;
+
+    for (size_t i = 0; i < expr.e.Conditional.program->e.Program.program.size; i++)
+    {
+        expr.e.Conditional.program->e.Program.program.content[i] = program.e.Program.program.content[i];
+    }
+    
+    return expr;
+}
+
+Expr Parse_Group(size_t* i, Token_List* tokens)
+{
+    Expr_List list;
+    Expr_List_Init(&list);
+    size_t j = (*i);
+    ++j;  // it needs to skip the first TOK_OPEN_PARENTHESIS so it can parse properly
+    for(; tokens->content[j].type != TOK_CLOSE_PARENTHESIS; ++j)
+    {
+        Expr_List_Push(&list, Expr_Literal(tokens->content[j]));
+    }
+    (*i) = j;
+    return Expr_Group(list);
+}
+
+Expr Parse_Function(size_t* i, Token_List* tokens)
+{
+    String ID = tokens->content[(*i)++].str;
+    Expr expr = Parse_Group(i, tokens);
+    return Expr_Function(ID, expr);
+}
+
+Expr Parse_Tokens(size_t* i, Token_List* tokens);
+
+Expr Parse_Conditional(size_t* i, Token_List* tokens)
+{
+    if(tokens->content[(*i)+1].type != TOK_STR)
+    {
+        printf("ERROR: Trying to pass non-STR to conditional when!!!\n");
+        exit(1);
+    }
+    String ID = tokens->content[(*i)+1].str;
+    Expr program = Expr_Program();
+
+    size_t j = (*i)+2;
+    for(;tokens->content[j].type != TOK_END; ++j)
+    {
+        if(j >= tokens->size)
+        {
+            printf("ERROR: You forgot to add an \"end\" token!!!\n");
+            exit(1);
+        }
+        Expr_List_Push(&program.e.Program.program, Parse_Tokens(&j, tokens));
+    }
+    
+    (*i) = j;
+
+    return Expr_Conditional(ID, program);
+}
+
+Expr Parse_Tokens(size_t* i, Token_List* tokens)
+{
+    switch(tokens->content[*i].type)
+    {
+        case TOK_WHEN:
+        {
+            return Parse_Conditional(i, tokens);
+        }
+        break;
+		case TOK_ID:
+        {
+            switch(tokens->content[(*i)+1].type)
+            {
+                case TOK_EQUALS:
+                {
+                    String ID = tokens->content[*i].str;
+                    Token tok = tokens->content[(*i)+2];
+                    
+                    (*i) += 2;
+
+                    return Expr_Set(ID, Expr_Literal(tok));
+                }
+                break;
+                case TOK_OPEN_PARENTHESIS:
+                {
+                    return Parse_Function(i, tokens);
+                }
+                break;
+                default:
+                {
+                    printf("%d : %s\n", tokens->content[*i].type, tokens->content[*i].str.content);
+                    printf("ERROR: Incorrect Syntax!!! ( %d : %s ) \n", tokens->content[(*i)+1].type, tokens->content[(*i)+1].str.content);
+                    exit(1);
+                }
+                break;
+            }
+        }
+        break;
+        default:
+        {
+            printf("TODO: Think about another error message\n");
+            printf("%d : %s", tokens->content[*i].type, tokens->content[*i].str.content);
+            exit(1);
+        }
+        break;
+	}
+}
+
+
+int Parse_Program(Expr* program, Token_List* tokens)
+{
+    for(size_t i = 0; i < tokens->size;++i)
+    {
+		Expr_List_Push(&program->e.Program.program, Parse_Tokens(&i, tokens));
+	}
+    return 0;
+}
+
+#endif // PARSER_H_
