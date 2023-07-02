@@ -1,54 +1,45 @@
-# Kaite ( pronounced Kite )
- Kaite is a simple, open-source language to build projects and execute command-line commands
+# Kaite (pronounced "Kite")
+Kaite is a simple, open-source language for building projects and executing command-line commands.
 
 # Why Kaite?
- I hate `batch`, that is why it is here
+I dislike `batch`, which is why Kaite exists.
 
 # Syntax
- Kaite has a really simple syntax lol, but it is a bit strange to new people,
- so here is how things work
+Kaite has a really simple syntax, but it may seem a bit strange to newcomers. Here's how things work:
 
-# Defining variables
- You define variables like in any C-like language, you first put the name, then equals, and
- the value, it can either be a string, or an id, that copies the value of an already
- existing variable. Here is an example:
+# Defining Variables
+You define variables as you would in any C-like language. First, you specify the name, followed by an equals sign (=) and the value. The value can be either a string or an identifier that copies the value of an existing variable. Here is an example:
 
- ```
- foo = "bar"
- bar = "baz 
- print(bar) ; prints out "baz"
- 
- bar = foo
- 
- print(bar) ; prints out "bar"
- ```
+```
+foo = "bar"
+bar = "baz"
+
+print(bar) ; prints out "baz"
+
+bar = foo
+
+print(bar) ; prints out "bar"
+```
 
 # When
- The `when` keyword is like C `#ifdef`, it checks internally if, something is defined.
- For now it only has a check if you are in a Windows or Linux pc. it works by passing an
- string, like this `when "WINDOWS"`. Also, to define where the code block ends, you need to
- add at the end of the code block, the `end` keyword.
+The `when` keyword is similar to C's `#ifdef`. It internally checks if something is defined. Currently, it only supports checking if you are on a Windows or Linux PC. It works by passing a string, like this: `when "WINDOWS"`. To mark the end of the code block, you need to add the `end` keyword.
 
 # Functions
- Functions are not user-defined for now, and they are called as in any other language, by
- putting the name and the arguments, also arguments don't need to be separated by a comma,
- here is an example of how functions work:
- ```
- output = "hello_world" ; output file
- flags = "-O2"
- 
- cmd("gcc main.c -o" output flags )
- ```
-# Intern Functions ( from Kaite STD )
- Kaite has already some functions defined for you, here are them:
- 
- `cmd` -> takes a list of parameters and executes them as a shell command.
- 
- `print` -> takes a list of parameters and prints them to the screen ( separating them by a newline ).
+Functions are not user-defined at the moment, and they are called just like in any other language by specifying the name and the arguments. Arguments don't need to be separated by commas. Here is an example of how functions work:
+```
+output = "hello_world" ; output file
+flags = "-O2"
 
- `input` -> takes a single variable for the input, then it lets the user input a string and saves it
- in the variable passed to the function.
- 
- `global` -> inside a `when`, you have a local scope, also outside, so if you want to put your variable
- in a global scope, you call global and pass it as the argument, in the global scope it can be accessed
- anywhere in the program.
+cmd("gcc main.c -o", output, flags)
+```
+
+# Internal Functions (from Kaite STD)
+Kaite already provides some predefined functions for you. Here they are:
+
+`cmd` -> Takes a list of parameters and executes them as a shell command.
+
+`print` -> Takes a list of parameters and prints them to the screen, separating them by a newline.
+
+`input` -> Takes a single variable as an argument and prompts the user to input a string, which is then stored in the specified variable.
+
+`global` -> Inside a `when` block, you have a local scope. However, if you want to make a variable accessible globally, you can use the `global` keyword followed by the variable name as an argument. In the global scope, the variable can be accessed from anywhere in the program.
