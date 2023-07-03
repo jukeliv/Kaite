@@ -1,8 +1,0 @@
-when "WINDOWS"
-{
-    print("Windows")
-}
-when "LINUX"
-{
-    print("Linux")
-}
