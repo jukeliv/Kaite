@@ -4,6 +4,9 @@ Kaite is a simple, open-source language for building projects and executing comm
 # Why Kaite?
 I dislike `batch`, which is why Kaite exists.
 
+# Where is it supported?
+It has been tested in Windows and Linux, both compiled with GCC.
+
 # Syntax
 Kaite has a really simple syntax, but it may seem a bit strange to newcomers. Here's how things work:
 
@@ -22,7 +25,17 @@ print(bar) ; prints out "bar"
 ```
 
 # When
-The `when` keyword is similar to C's `#ifdef`. It internally checks if something is defined. Currently, it only supports checking if you are on a Windows or Linux PC. It works by passing a string, like this: `when "WINDOWS"`. To mark the end of the code block, you need to add the `end` keyword.
+The `when` keyword is similar to C's `#ifdef`. It internally checks if something is defined. Currently, it only supports checking if you are on a Windows or Linux PC. It works by passing a string, like this: `when "WINDOWS"`. A code block works just like in C, here is an example:
+```
+when "LINUX"
+{
+    print("Linux")
+}
+when "WINDOWS"
+{
+    print("Not Linux")
+}
+```
 
 # Functions
 Functions are not user-defined at the moment, and they are called just like in any other language by specifying the name and the arguments. Arguments don't need to be separated by commas. Here is an example of how functions work:

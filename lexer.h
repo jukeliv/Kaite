@@ -14,7 +14,8 @@ typedef enum Token_Type {
     TOK_OPEN_PARENTHESIS,
     TOK_CLOSE_PARENTHESIS,
     TOK_WHEN,
-    TOK_END,
+    TOK_OPEN_CURLY,
+    TOK_CLOSE_CURLY
 } Token_Type;
 
 typedef struct Token {
@@ -148,6 +149,16 @@ int Tokenize_File(Token_List* tokens, const char* path) {
                 lex[0] = ')';
                 Token_List_Push(tokens, Token_New(TOK_CLOSE_PARENTHESIS, lex));
                 continue;
+                
+            case '{':
+                lex[0] = '{';
+                Token_List_Push(tokens, Token_New(TOK_OPEN_CURLY, lex));
+                continue;
+
+            case '}':
+                lex[0] = '}';
+                Token_List_Push(tokens, Token_New(TOK_CLOSE_CURLY, lex));
+                continue;
 
             default:
                 if (is_from_alphabet(source[i])) {
@@ -156,10 +167,6 @@ int Tokenize_File(Token_List* tokens, const char* path) {
                     if(!strcmp(lex, "when"))
                     {
                         Token_List_Push(tokens, Token_New(TOK_WHEN, lex));
-                    }
-                    else if(!strcmp(lex, "end"))
-                    {
-                        Token_List_Push(tokens, Token_New(TOK_END, lex));
                     }
                     else
                     {

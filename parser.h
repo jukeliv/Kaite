@@ -235,6 +235,30 @@ Expr Parse_Function(size_t* i, Token_List* tokens)
 
 Expr Parse_Tokens(size_t* i, Token_List* tokens);
 
+// `i` should start at `{`
+Expr Parse_Code_Block(size_t* i, Token_List* tokens)
+{
+    if(tokens->content[(*i)].type != TOK_OPEN_CURLY)
+    {
+        printf("ERROR: You are not opening code block\n");
+        exit(1);
+    }
+    Expr block = Expr_Program();
+
+    size_t j = (*i)+1;
+    for(;tokens->content[j].type != TOK_CLOSE_CURLY; ++j)
+    {
+        if(j >= tokens->size)
+        {
+            printf("ERROR: You forgot to close code block!!!\n");
+            exit(1);
+        }
+        Expr_List_Push(&block.e.Program.program, Parse_Tokens(&j, tokens));
+    }
+    (*i) = j;
+    return block;
+}
+
 Expr Parse_Conditional(size_t* i, Token_List* tokens)
 {
     if(tokens->content[(*i)+1].type != TOK_STR)
@@ -242,23 +266,11 @@ Expr Parse_Conditional(size_t* i, Token_List* tokens)
         printf("ERROR: Trying to pass non-STR to conditional when!!!\n");
         exit(1);
     }
-    String ID = tokens->content[(*i)+1].str;
-    Expr program = Expr_Program();
+    String ID = tokens->content[++(*i)].str;
 
-    size_t j = (*i)+2;
-    for(;tokens->content[j].type != TOK_END; ++j)
-    {
-        if(j >= tokens->size)
-        {
-            printf("ERROR: You forgot to add an \"end\" token!!!\n");
-            exit(1);
-        }
-        Expr_List_Push(&program.e.Program.program, Parse_Tokens(&j, tokens));
-    }
-    
-    (*i) = j;
+    ++(*i);
 
-    return Expr_Conditional(ID, program);
+    return Expr_Conditional(ID, Parse_Code_Block(i, tokens));
 }
 
 Expr Parse_Tokens(size_t* i, Token_List* tokens)
@@ -312,7 +324,7 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
 
 int Parse_Program(Expr* program, Token_List* tokens)
 {
-    for(size_t i = 0; i < tokens->size;++i)
+    for(size_t i = 0; i < tokens->size; ++i)
     {
 		Expr_List_Push(&program->e.Program.program, Parse_Tokens(&i, tokens));
 	}
