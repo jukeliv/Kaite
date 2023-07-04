@@ -1,77 +1,4 @@
-#ifndef PARSER_H_
-#define PARSER_H_
-
-#include "lexer.h"
-
-/*
-    conditional -> "when" STRING program "end";
-    program -> list[expresion];
-    expresion -> group | set | function;
-    function -> ID group;
-    group -> "(" list[literal] ")";
-    Set -> ID "=" literal;
-    literal -> STRING | ID;
-*/
-
-typedef enum
-{
-    Program,
-    Group,
-    Set,
-    Function,
-    Conditional,
-    Literal
-}Expr_Type;
-
-struct Expr;
-typedef struct
-{
-    size_t heap;
-    size_t size;
-    struct Expr* content;
-}Expr_List;
-
-typedef enum
-{
-    LITERAL_String,
-    LITERAL_Id
-}Literal_Type;
-
-typedef struct Expr
-{
-    Expr_Type type;
-    union
-    {
-		struct
-		{
-			Expr_List program;
-		}Program;
-
-		struct{
-            Expr_List literals;
-		}Group;
-
-		struct{
-			String ID;
-            struct Expr* literal;
-		}Set;
-
-		struct{
-			String ID;
-			struct Expr* group;
-		}Function;
-
-        struct{
-            String ID; // when ID [program] end
-			struct Expr* program;
-		}Conditional;
-
-        struct{
-            Literal_Type type;
-            String value;
-        }Literal;
-    }e;
-}Expr;
+#include "..\include\parser.h"
 
 void Expr_List_Init(Expr_List* list)
 {
@@ -136,10 +63,10 @@ Expr Expr_Function(String ID, Expr group)
     expr.e.Function.ID = ID;
 
     expr.e.Function.group = malloc(sizeof(Expr));
-    expr.e.Function.group->e.Group = group.e.Group;
+    *expr.e.Function.group = group;
+
     return expr;
 }
-
 
 Expr Expr_Literal(Token tok)
 {
@@ -175,11 +102,12 @@ Expr Expr_Set(String ID, Expr literal)
     Expr expr;
     expr.type = Set;
     expr.e.Set.ID = ID;
+    
     expr.e.Set.literal = malloc(sizeof(Expr));
-    expr.e.Set.literal->e.Literal = literal.e.Literal;
+    *expr.e.Set.literal = literal;
+
     return expr;
 }
-
 
 Expr Expr_Conditional(String ID, Expr program)
 {
@@ -188,27 +116,8 @@ Expr Expr_Conditional(String ID, Expr program)
     expr.e.Conditional.ID = ID;
     
     expr.e.Conditional.program = malloc(sizeof(Expr));
-    if (expr.e.Conditional.program == NULL)
-    {
-        printf("ERROR: Couldn't allocate memory for Program\n");
-        exit(1);
-    }
+    *expr.e.Conditional.program = program;
 
-    expr.e.Conditional.program->e.Program.program.content = malloc(program.e.Program.program.size * sizeof(Expr));
-    if (expr.e.Conditional.program->e.Program.program.content == NULL)
-    {
-        printf("ERROR: Couldn't allocate memory for Program content\n");
-        exit(1);
-    }
-
-    expr.e.Conditional.program->e.Program.program.size = program.e.Program.program.size;
-    expr.e.Conditional.program->e.Program.program.heap = program.e.Program.program.size;
-
-    for (size_t i = 0; i < expr.e.Conditional.program->e.Program.program.size; i++)
-    {
-        expr.e.Conditional.program->e.Program.program.content[i] = program.e.Program.program.content[i];
-    }
-    
     return expr;
 }
 
@@ -232,8 +141,6 @@ Expr Parse_Function(size_t* i, Token_List* tokens)
     Expr expr = Parse_Group(i, tokens);
     return Expr_Function(ID, expr);
 }
-
-Expr Parse_Tokens(size_t* i, Token_List* tokens);
 
 // `i` should start at `{`
 Expr Parse_Code_Block(size_t* i, Token_List* tokens)
@@ -322,13 +229,10 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
 }
 
 
-int Parse_Program(Expr* program, Token_List* tokens)
+void Parse_Program(Expr* program, Token_List* tokens)
 {
     for(size_t i = 0; i < tokens->size; ++i)
     {
 		Expr_List_Push(&program->e.Program.program, Parse_Tokens(&i, tokens));
 	}
-    return 0;
 }
-
-#endif // PARSER_H_

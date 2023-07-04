@@ -1,23 +1,6 @@
-#ifndef INTERPRETER_H_
-#define INTERPRETER_H_
+#include "..\include\interpreter.h"
 
-#include "lexer.h"
-#include "parser.h"
-#include <stdio.h>
-#include <stdlib.h>
-
-typedef struct Variable
-{
-    const char* id;
-    String str;
-}Variable;
-
-typedef struct Variable_List
-{
-    size_t heap;
-    size_t size;
-    Variable* content;
-}Variable_List;
+Variable_List global_variables;
 
 void Variable_List_Init(Variable_List* list)
 {
@@ -85,8 +68,6 @@ size_t Variable_List_Find(Variable_List* list, const char* id)
     return 0; // just so the compiler doesn't yell at me!!!
 }
 
-Variable_List global_variables;
-
 void Initialize_Global()
 {
     Variable_List_Init(&global_variables);
@@ -118,9 +99,6 @@ Variable_List* Get_Variable_List(Variable_List* variables, const char* variable)
     else
         return variables;
 }
-
-
-void Interpret_Program(Expr program);
 
 void Interpret_Conditional(Expr expr)
 {
@@ -401,5 +379,3 @@ void Interpret_Program(Expr program)
 	}
     Variable_List_Free(&variables);
 }
-
-#endif // INTERPRETER_H_
