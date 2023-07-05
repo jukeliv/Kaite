@@ -67,7 +67,7 @@ Kaite already provides some predefined functions for you. Here they are:
 `remove`: The `remove` function takes one argument, which is the variable thats going to be removed. It searches for the variable in both the global and local scopes. If the variable is found, it is removed from the scope.
 
 # Building Kaite
-To build Kaite, you can execute the "build.bat" script (yes, I know, it's a bit cringe). However, if you prefer, you can use any C compiler of your choice by running the following command in your terminal: `gcc main.c -o kaite.exe -O2`. 
+To build Kaite, you can execute the "build.bat" script (yes, I know, it's a bit cringe). However, if you prefer, you can use any C compiler of your choice by running the following command in your terminal: `gcc src\lexer.c src\parser.c src\interpreter.c src\main.c -o kaite.exe -O2`. 
 
 # Good Practices
 Here are some good practices to follow when coding in Kaite.
