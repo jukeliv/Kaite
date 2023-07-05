@@ -6,10 +6,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef enum Var_Type
+{
+    Var_Number,
+    Var_String
+}Var_Type;
+
 typedef struct Variable
 {
     const char* id;
-    String str;
+    Var_Type type;
+    union{
+        String str;
+        float num;
+    }value;
 }Variable;
 
 typedef struct Variable_List
@@ -28,12 +38,15 @@ size_t Variable_List_Find(Variable_List* list, const char* id);
 
 void Initialize_Global();
 
-Variable* Get_Variable(Variable_List* variables, const char* variable);
+Variable* Get_Variable(const char* variable);
 Variable_List* Get_Variable_List(Variable_List* variables, const char* variable);
 
 void Interpret_Conditional(Expr expr);
-void Interpret_Set(Variable_List* variables, Expr expr);
-void Interpret_Function(Variable_List* variables, Expr expr);
+void Interpret_Set(Expr expr);
+void Interpret_Function(Expr expr);
+Variable Interpret_Literal(Expr node);
+Variable Interpret_BinOp(Expr node);
+Variable Interpret(Expr node);
 void Interpret_Program(Expr program);
 
 #endif // INTERPRETER_H_

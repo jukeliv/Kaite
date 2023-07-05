@@ -37,16 +37,15 @@ void Token_List_Free(Token_List* tokens)
         free(tokens->content);
 }
 
-int Tokenize_File(Token_List* tokens, const char* path) {
-    const char* source = read_file(path);
-
-    if (!source)
-        exit(1);
+int Tokenize_File(Token_List* tokens, const char* source) {
 
     char lex[256] = {0};
     unsigned char lex_i = 0;
 
-    for (size_t i = 0; i < strlen(source); ++i) {
+    size_t size = strlen(source);
+
+    for (size_t i = 0; i < size; ++i) {
+
         while (is_white_space(source[i]))
             ++i;
 
@@ -64,33 +63,53 @@ int Tokenize_File(Token_List* tokens, const char* path) {
                 Token_List_Push(tokens, Token_New(TOK_EQUALS, lex));
                 continue;
 
+            case '+':
+                lex[0] = BINOP_PLUS;
+                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+            continue;
+            
+            case '-':
+                lex[0] = BINOP_MINUS;
+                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+            continue;
+            
+            case '*':
+                lex[0] = BINOP_MULTIPLICATION;
+                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+            continue;
+            
+            case '/':
+                lex[0] = BINOP_DIVISION;
+                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+            continue;
+
+            case '(':
+                lex[0] = '(';
+                Token_List_Push(tokens, Token_New(TOK_OPEN_PARENTHESIS, lex));
+            continue;
+
+            case ')':
+                lex[0] = ')';
+                Token_List_Push(tokens, Token_New(TOK_CLOSE_PARENTHESIS, lex));
+            continue;
+                
+            case '{':
+                lex[0] = '{';
+                Token_List_Push(tokens, Token_New(TOK_OPEN_CURLY, lex));
+            continue;
+
+            case '}':
+                lex[0] = '}';
+                Token_List_Push(tokens, Token_New(TOK_CLOSE_CURLY, lex));
+            continue;
+
             case '"':
                 ++i;
                 while (source[i] != '"' && lex_i < sizeof(lex) - 1) {
                     lex[lex_i++] = source[i++];
                 }
                 Token_List_Push(tokens, Token_New(TOK_STR, lex));
-                continue;
-
-            case '(':
-                lex[0] = '(';
-                Token_List_Push(tokens, Token_New(TOK_OPEN_PARENTHESIS, lex));
-                continue;
-
-            case ')':
-                lex[0] = ')';
-                Token_List_Push(tokens, Token_New(TOK_CLOSE_PARENTHESIS, lex));
-                continue;
-                
-            case '{':
-                lex[0] = '{';
-                Token_List_Push(tokens, Token_New(TOK_OPEN_CURLY, lex));
-                continue;
-
-            case '}':
-                lex[0] = '}';
-                Token_List_Push(tokens, Token_New(TOK_CLOSE_CURLY, lex));
-                continue;
+            continue;
 
             default:
                 if (is_from_alphabet(source[i])) {
@@ -106,11 +125,23 @@ int Tokenize_File(Token_List* tokens, const char* path) {
                     }
 					i--;
                     continue;
-                } else if (!is_white_space(source[i]) && source[i] != '\0') {
+                }
+                else if(is_num(source[i]))
+                {
+                    while (is_num(source[i]) || source[i] == '.')
+                    {
+                        lex[lex_i++] = source[i++];
+                    }
+                    Token_List_Push(tokens, Token_New(TOK_NUM, lex));
+					
+                    i--;
+                    continue;
+                }
+                else if (!is_white_space(source[i]) && source[i] != '\0') {
                     printf("ERROR: Unknown character found in file!!! ( %c : %d )\n", source[i], source[i]);
                     return 1;
                 }
-                break;
+            break;
         }
     }
 

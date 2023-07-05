@@ -1,6 +1,7 @@
 #include "..\include\interpreter.h"
 
 Variable_List global_variables;
+Variable_List* local_variables;
 
 void Variable_List_Init(Variable_List* list)
 {
@@ -73,9 +74,9 @@ void Initialize_Global()
     Variable_List_Init(&global_variables);
 }
 
-Variable* Get_Variable(Variable_List* variables, const char* variable)
+Variable* Get_Variable(const char* variable)
 {
-    if(!Variable_List_Exist(variables, variable) && !Variable_List_Exist(&global_variables, variable))
+    if(!Variable_List_Exist(local_variables, variable) && !Variable_List_Exist(&global_variables, variable))
     {
         return NULL;
     }
@@ -83,7 +84,7 @@ Variable* Get_Variable(Variable_List* variables, const char* variable)
     if(Variable_List_Exist(&global_variables, variable))
         var = &global_variables.content[Variable_List_Find(&global_variables, variable)];
     else
-        var = &variables->content[Variable_List_Find(variables, variable)];
+        var = &local_variables->content[Variable_List_Find(local_variables, variable)];
     return var;
 }
 
@@ -123,40 +124,32 @@ void Interpret_Conditional(Expr expr)
     }
 }
 
-void Interpret_Set(Variable_List* variables, Expr expr)
+void Interpret_Set(Expr expr)
 {
-    if(!Get_Variable(variables, expr.e.Set.ID.content))
+    if(!Get_Variable(expr.e.Set.ID.content))
     {
         Variable var;
         var.id = strdup(expr.e.Set.ID.content);
-        Variable_List_Push(variables, var);
+        var.type = Interpret(*expr.e.Set.literal).type;
+        Variable_List_Push(local_variables, var);
     }
-    Variable* var = Get_Variable(variables, expr.e.Set.ID.content);
+    Variable* var = Get_Variable(expr.e.Set.ID.content);
 
-    Expr literal = *(expr.e.Set.literal);
+    Expr literal = *expr.e.Set.literal;
 
-    switch(literal.e.Literal.type)
+    Variable v = Interpret(literal);
+
+    if(var->type != v.type)
     {
-        case LITERAL_Id:
-        {
-            Variable* var2 = Get_Variable(variables, literal.e.Literal.value.content);
-            if(!var2)
-            {
-                printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
-                return;
-            }
-            var->str = var2->str;
-        }
-        break;
-        case LITERAL_String:
-        {
-            var->str = literal.e.Literal.value;
-        }
-        break;
+        printf("ERROR: Can't set variable %s to a non-matching data-type\n", var->id);
+        exit(1);
     }
+
+    v.id = var->id;
+    *var = v;
 }
 
-void Interpret_Function(Variable_List* variables, Expr expr)
+void Interpret_Function(Expr expr)
 {
 	Expr group = *(expr.e.Function.group);
 	String functionName = expr.e.Function.ID;
@@ -171,25 +164,22 @@ void Interpret_Function(Variable_List* variables, Expr expr)
         size_t str_size = 0;
         for (size_t i = 0; i < group.e.Group.literals.size; ++i) {
             Expr literal = group.e.Group.literals.content[i];
-            switch (literal.e.Literal.type) {
-                case LITERAL_String:
-                    str_size += literal.e.Literal.value.size;
-                    break;
-
-                case LITERAL_Id: {
-                    Variable* var = Get_Variable(variables, literal.e.Literal.value.content);
-                    if (!var) {
-                        printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
-                        exit(1);
-                    }
-                    str_size += Get_Variable(variables, literal.e.Literal.value.content)->str.size;
-                    break;
+            Variable v = Interpret(literal);
+            switch(v.type)
+            {
+                case Var_String:
+                {
+                    str_size += v.value.str.size;
                 }
+                break;
+                case Var_Number:
+                    str_size += snprintf(NULL, 0, "%f", v.value.num);
+                break;
             }
             str_size++; // Account for space separator
         }
 
-        char* buffer = malloc((str_size + 1) * sizeof(char)); // Allocate space for null terminator
+        char* buffer = calloc((str_size + 1), sizeof(char)); // Allocate space for null terminator
         if (!buffer) {
             printf("ERROR: Couldn't allocate memory for Command-Buffer\n");
             return;
@@ -198,34 +188,23 @@ void Interpret_Function(Variable_List* variables, Expr expr)
         size_t buffer_index = 0;
         for (size_t i = 0; i < group.e.Group.literals.size; ++i) {
             Expr literal = group.e.Group.literals.content[i];
-            switch (literal.e.Literal.type) {
-                case LITERAL_String:
-                {
-                    if (i != 0) {
-                        buffer[buffer_index++] = ' ';
-                    }
-                    memcpy(buffer + buffer_index, literal.e.Literal.value.content, literal.e.Literal.value.size);
-                    buffer_index += literal.e.Literal.value.size;
-                }
-                break;
-                case LITERAL_Id:
-                {
-                    Variable* var = Get_Variable(variables, literal.e.Literal.value.content);
-                    if (!var) {
-                        printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
-                        exit(1);
-                    }
-                    if (i != 0) {
-                        buffer[buffer_index++] = ' ';
-                    }
-                    memcpy(buffer + buffer_index, var->str.content, var->str.size);
-                    buffer_index += var->str.size;
-                }
+            Variable v = Interpret(literal);
+            if (i != 0) {
+                buffer[buffer_index++] = ' ';
+            }
+
+            switch(v.type)
+            {
+                case Var_String:
+                    memcpy(buffer + buffer_index, v.value.str.content, v.value.str.size);
+                    buffer_index += v.value.str.size;
+                break; 
+                case Var_Number:
+                    buffer_index += sprintf(buffer + buffer_index, "%f", Interpret(literal).value.num);
                 break;
             }
         }
 
-        buffer[buffer_index] = '\0'; // Add null terminator
         system(buffer);
         free(buffer);
     }
@@ -239,23 +218,15 @@ void Interpret_Function(Variable_List* variables, Expr expr)
         for(size_t i = 0; i < group.e.Group.literals.size; ++i)
         {
             Expr literal = group.e.Group.literals.content[i];
-            switch(literal.e.Literal.type)
+            Variable v = Interpret(literal);
+            
+            switch(v.type)
             {
-                case LITERAL_String:
-                {
-                    printf("%s\n", literal.e.Literal.value.content);
-                }
+                case Var_String:
+                    printf("%s\n", v.value.str.content);
                 break;
-                case LITERAL_Id:
-                {
-                    Variable* var = Get_Variable(variables, literal.e.Literal.value.content);
-                    if(!var)
-                    {
-                        printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
-                        return;
-                    }
-                    printf("%s\n", var->str.content);
-                }
+                case Var_Number:
+                    printf("%f\n", v.value.num);
                 break;
             }
         }
@@ -285,15 +256,25 @@ void Interpret_Function(Variable_List* variables, Expr expr)
             break;
             case LITERAL_Id:
             {
-                Variable* var = Get_Variable(variables, literal.e.Literal.value.content);
+                Variable* var = Get_Variable(literal.e.Literal.value.content);
                 if(!var)
                 {
                     printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
                     return;
                 }
-                char buf[256] = {0};
-                scanf("%256s", &buf);
-                var->str = String_CStr(buf);
+                switch(var->type)
+                {
+                    case Var_String:
+                    {
+                        char buf[256] = {0};
+                        scanf("%256s", &buf);
+                        var->value.str = String_CStr(buf);
+                    }
+                    break;
+                    case Var_Number:
+                        scanf("%f", &var->value.num);
+                    break;
+                }
             }
             break;
         }
@@ -323,15 +304,52 @@ void Interpret_Function(Variable_List* variables, Expr expr)
             break;
             case LITERAL_Id:
             {
-                Variable* var = Get_Variable(variables, literal.e.Literal.value.content);
+                Variable* var = Get_Variable(literal.e.Literal.value.content);
                 if(!var)
                 {
                     printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
                     return;
                 }
                 Variable_List_Push(&global_variables, *(var));
-                size_t index = Variable_List_Find(Get_Variable_List(variables, literal.e.Literal.value.content), literal.e.Literal.value.content);
-                Variable_List_Remove(variables, index);
+                size_t index = Variable_List_Find(Get_Variable_List(local_variables, literal.e.Literal.value.content), literal.e.Literal.value.content);
+                Variable_List_Remove(local_variables, index);
+            }
+            break;
+        }
+    }
+    else if(!strcmp(functionName.content, "remove"))
+    {
+        if(!group.e.Group.literals.size)
+        {
+            printf("ERROR: No arguments passed to \"input\"\n");
+            return;
+        }
+        else if(group.e.Group.literals.size > 1)
+        {
+            printf("ERROR: To many arguments passed to \"input\"\n");
+            return;
+        }
+
+        Expr literal = group.e.Group.literals.content[0];
+
+        switch(literal.e.Literal.type)
+        {
+            case LITERAL_String:
+            {
+                printf("ERROR: Can't use non-Variable data-type in function \"remove\"");
+                return;
+            }
+            break;
+            case LITERAL_Id:
+            {
+                Variable* var = Get_Variable(literal.e.Literal.value.content);
+                if(!var)
+                {
+                    printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
+                    return;
+                }
+                size_t index = Variable_List_Find(Get_Variable_List(local_variables, literal.e.Literal.value.content), literal.e.Literal.value.content);
+                Variable_List_Remove(local_variables, index);
             }
             break;
         }
@@ -341,6 +359,123 @@ void Interpret_Function(Variable_List* variables, Expr expr)
         printf("TODO: Implement user-defined functions!!!\n");
         return;
     }
+}
+
+Variable Interpret_Literal(Expr node)
+{
+    Variable var;
+    switch(node.e.Literal.type)
+    {
+        case LITERAL_String:
+            var.value.str = node.e.Literal.value;
+            var.type = Var_String;
+        break;
+        case LITERAL_Number:
+            var.value.num = strtod(node.e.Literal.value.content, NULL);
+            var.type = Var_Number;
+        break;
+        case LITERAL_Id:
+        {
+            Variable* var2 = Get_Variable(node.e.Literal.value.content);
+            if(!var2)
+            {
+                printf("ERROR: Couldn't find variable \"%s\"\n", node.e.Literal.value.content);
+                exit(1);
+            }
+            var = *var2;
+        }
+        break;
+    }
+    return var;
+}
+
+Variable Interpret_BinOp(Expr node)
+{
+    Variable left_result = Interpret(*node.e.BinOp.left);
+    Variable right_result = Interpret(*node.e.BinOp.right);
+
+    if(left_result.type != right_result.type)
+    {
+        printf("ERROR: Can't operate when data-types are not matching!!!\n");
+        exit(1);
+    }
+
+    Variable var;
+    var.type = left_result.type;
+
+    if (node.e.BinOp.op == BINOP_PLUS)
+    {
+        if(left_result.type == Var_String)
+        {
+            var.value.str = String_Concat(left_result.value.str, right_result.value.str);
+            return var;
+        }
+        if(left_result.type == Var_Number)
+        {
+            var.value.num = left_result.value.num + right_result.value.num;
+            return var;
+        }
+    }
+    else if (node.e.BinOp.op == BINOP_MINUS)
+    {
+        if(left_result.type == Var_String)
+        {
+            printf("ERROR: BINOP_MINUS not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left_result.type == Var_Number)
+        {
+            var.value.num = left_result.value.num - right_result.value.num;
+            return var;
+        }
+    }
+    else if (node.e.BinOp.op == BINOP_MULTIPLICATION)
+    {
+        if(left_result.type == Var_String)
+        {
+            printf("ERROR: BINOP_MULTIPLICATION not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left_result.type == Var_Number)
+        {
+            var.value.num = left_result.value.num * right_result.value.num;
+            return var;
+        }
+    }
+    else if (node.e.BinOp.op == BINOP_DIVISION)
+    {
+        if(left_result.type == Var_String)
+        {
+            printf("ERROR: BINOP_DIVISION not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left_result.type == Var_Number)
+        {
+            var.value.num = left_result.value.num / right_result.value.num;
+            return var;
+        }
+    }
+
+    return var;
+}
+
+Variable Interpret(Expr node)
+{
+    Variable var;
+    if (node.type == BinOp)
+    {
+        var = Interpret_BinOp(node);
+    }
+    else if (node.type == Literal)
+    {
+        var = Interpret_Literal(node);
+    }
+    else if(node.type == Parenthesized)
+    {
+        var = Interpret(*node.e.Parenthesized.expr);
+    }
+
+    return var;
 }
 
 void Interpret_Program(Expr program)
@@ -354,6 +489,8 @@ void Interpret_Program(Expr program)
     Variable_List variables;
     Variable_List_Init(&variables);
 
+    local_variables = &variables;
+
 	for(size_t i = 0; i < program.e.Program.program.size; ++i)
 	{
 		Expr expr = program.e.Program.program.content[i];
@@ -363,16 +500,17 @@ void Interpret_Program(Expr program)
             case Conditional:
             {
                 Interpret_Conditional(expr);
+                local_variables = &variables; // we need to reset the local scope after going to another scope
             }
             break;
 			case Set:
 			{
-                Interpret_Set(&variables, expr);
+                Interpret_Set(expr);
 			}
 			break;
 			case Function:
 			{
-                Interpret_Function(&variables, expr);
+                Interpret_Function(expr);
 			}
 			break;
 		}

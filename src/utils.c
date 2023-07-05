@@ -12,6 +12,27 @@ String String_CStr(const char* cstr) {
     return str;
 }
 
+String String_Concat(String str1, String str2) {
+    size_t len1 = str1.size;
+    size_t len2 = str2.size;
+    
+    String result;
+    result.heap = len1 + len2 + 1;
+    result.size = len1 + len2;
+    result.content = (char*)malloc(result.heap * sizeof(char));
+    
+    if (result.content == NULL) {
+        fprintf(stderr, "Failed to allocate memory for String concatenation.\n");
+        exit(1);
+    }
+    
+    memcpy(result.content, str1.content, len1);
+    memcpy(result.content + len1, str2.content, len2);
+    result.content[result.size] = '\0';
+    
+    return result;
+}
+
 char* read_file(const char* path) {
     FILE* fp = fopen(path, "rb");
     if (!fp) {
@@ -49,4 +70,8 @@ bool is_from_alphabet(char c) {
 
 bool is_white_space(char c) {
     return (c == '\n' || c == ' ') || (c == '\r' || c == '\t');
+}
+
+bool is_num(char c) {
+    return (c >= '0' && c <= '9');
 }

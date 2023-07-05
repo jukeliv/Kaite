@@ -4,13 +4,14 @@
 #include "lexer.h"
 
 /*
-    conditional -> "when" STRING program "end";
-    program -> list[expresion];
-    expresion -> group | set | function;
-    function -> ID group;
-    group -> "(" list[literal] ")";
-    Set -> ID "=" literal;
-    literal -> STRING | ID;
+    conditional -> "when" STRING program "end"
+    binOp -> (literal | binOp) ("+" | "-" | "*" | "/") (literal | binOp)
+    program -> list[expresion]
+    expresion -> group | set | function
+    function -> ID group
+    group -> "(" list[literal] ")"
+    Set -> ID "=" literal
+    literal -> STRING | ID
 */
 
 typedef enum
@@ -20,7 +21,9 @@ typedef enum
     Set,
     Function,
     Conditional,
-    Literal
+    Literal,
+    BinOp,
+    Parenthesized
 }Expr_Type;
 
 struct Expr;
@@ -34,6 +37,7 @@ typedef struct
 typedef enum
 {
     LITERAL_String,
+    LITERAL_Number,
     LITERAL_Id
 }Literal_Type;
 
@@ -67,6 +71,16 @@ typedef struct Expr
 		}Conditional;
 
         struct{
+            struct Expr* left;
+            BinaryOperators op;
+            struct Expr* right;
+        }BinOp;
+
+        struct{
+            struct Expr* expr;
+        }Parenthesized;
+
+        struct{
             Literal_Type type;
             String value;
         }Literal;
@@ -79,15 +93,17 @@ void Expr_List_Push(Expr_List* list, Expr expr);
 Expr Expr_Group(Expr_List list);
 Expr Expr_Function(String ID, Expr group);
 Expr Expr_Literal(Token tok);
+Expr Expr_BinOp(BinaryOperators op, Expr left, Expr right);
+Expr Expr_Parenthesized(Expr node);
 Expr Expr_Set(String ID, Expr literal);
 Expr Expr_Conditional(String ID, Expr program);
 Expr Expr_Program();
 
 Expr Parse_Group(size_t* i, Token_List* tokens);
 Expr Parse_Function(size_t* i, Token_List* tokens);
-
-// `i` should start at `{`
-Expr Parse_Code_Block(size_t* i, Token_List* tokens);
+Expr Parse_BinOp(size_t* i, Token_List* tokens);
+Expr Parse_Tokens(size_t* i, Token_List* tokens);
+Expr Parse_Code_Block(size_t* i, Token_List* tokens);// `i` should start at `{`
 Expr Parse_Conditional(size_t* i, Token_List* tokens);
 Expr Parse_Tokens(size_t* i, Token_List* tokens);
 

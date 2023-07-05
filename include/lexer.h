@@ -7,15 +7,24 @@
 #include <string.h>
 #include "utils.h"
 
+typedef enum {
+    BINOP_PLUS,
+    BINOP_MINUS,
+    BINOP_DIVISION,
+    BINOP_MULTIPLICATION
+}BinaryOperators;
+
 typedef enum Token_Type {
     TOK_EQUALS,
     TOK_STR,
+    TOK_NUM,
     TOK_ID,
     TOK_OPEN_PARENTHESIS,
     TOK_CLOSE_PARENTHESIS,
     TOK_WHEN,
     TOK_OPEN_CURLY,
-    TOK_CLOSE_CURLY
+    TOK_CLOSE_CURLY,
+    TOK_BINOP
 } Token_Type;
 
 typedef struct Token {

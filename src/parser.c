@@ -80,6 +80,12 @@ Expr Expr_Literal(Token tok)
             literal.e.Literal.type = LITERAL_String;
         }
         break;
+
+        case TOK_NUM:
+        {
+            literal.e.Literal.type = LITERAL_Number;
+        }
+        break;
         
         case TOK_ID:
         {
@@ -89,12 +95,45 @@ Expr Expr_Literal(Token tok)
 
         default:
         {
-            printf("ERROR: Can't set Literal to Token Type!!! ( %d )\n", tok.type);
+            printf("ERROR: Can't set Literal to Token Type!!! (%d : %s )\n", tok.type, tok.str.content);
             exit(1);
         }
         break;
     }
     return literal;
+}
+
+Expr Expr_BinOp(BinaryOperators op, Expr left, Expr right)
+{
+    Expr expr;
+    
+    expr.type = BinOp;
+
+    // Assign the left operand directly
+    expr.e.BinOp.left = malloc(sizeof(Expr));
+    *expr.e.BinOp.left = left;
+
+
+    expr.e.BinOp.op = op;
+    
+    // Assign the right operand directly
+    expr.e.BinOp.right = malloc(sizeof(Expr));
+    *expr.e.BinOp.right = right;
+
+    return expr;
+}
+
+Expr Expr_Parenthesized(Expr node)
+{
+    Expr expr;
+    
+    expr.type = Parenthesized;
+
+    // Assign the left operand directly
+    expr.e.Parenthesized.expr = malloc(sizeof(Expr));
+    *expr.e.Parenthesized.expr = node;
+
+    return expr;
 }
 
 Expr Expr_Set(String ID, Expr literal)
@@ -125,11 +164,25 @@ Expr Parse_Group(size_t* i, Token_List* tokens)
 {
     Expr_List list;
     Expr_List_Init(&list);
+
     size_t j = (*i);
     ++j;  // it needs to skip the first TOK_OPEN_PARENTHESIS so it can parse properly
-    for(; tokens->content[j].type != TOK_CLOSE_PARENTHESIS; ++j)
+    
+    size_t end = j;
+    for(;tokens->content[end].type != TOK_CLOSE_PARENTHESIS; ++end);
+
+    for(; j < end; ++j)
     {
-        Expr_List_Push(&list, Expr_Literal(tokens->content[j]));
+        if(tokens->content[j+1].type == TOK_BINOP || tokens->content[j].type == TOK_OPEN_PARENTHESIS)
+        {
+            (*i) = j;
+            Expr_List_Push(&list, Parse_BinOp(i, tokens));
+            j = (*i);
+        }
+        else
+        {
+            Expr_List_Push(&list, Expr_Literal(tokens->content[j]));
+        }
     }
     (*i) = j;
     return Expr_Group(list);
@@ -140,6 +193,56 @@ Expr Parse_Function(size_t* i, Token_List* tokens)
     String ID = tokens->content[(*i)++].str;
     Expr expr = Parse_Group(i, tokens);
     return Expr_Function(ID, expr);
+}
+
+Expr Parse_BinOp(size_t* i, Token_List* tokens)
+{
+    Expr left;
+    if (tokens->content[*i].type == TOK_OPEN_PARENTHESIS)
+    {
+        (*i)++;
+        left = Expr_Parenthesized(Parse_BinOp(i, tokens));
+    }
+    else
+    {
+        left = Expr_Literal(tokens->content[*i]);
+    }
+
+    (*i)++;
+
+    while (tokens->content[*i].type == TOK_BINOP)
+    {
+        BinaryOperators operator = tokens->content[*i].str.content[0]; // Get the binary operator
+        (*i)++;
+
+        Expr right;
+        if (tokens->content[*i].type == TOK_OPEN_PARENTHESIS)
+        {
+            (*i)++;
+            right = Expr_Parenthesized(Parse_BinOp(i, tokens));
+        }
+        else
+        {
+            right = Expr_Literal(tokens->content[*i]);
+        }
+
+        (*i)++;
+
+        // Check if the next token is a closing parenthesis
+        if (tokens->content[*i].type == TOK_CLOSE_PARENTHESIS)
+        {
+            // Return the current expression if it ends with a closing parenthesis
+            return Expr_BinOp(operator, left, right);
+        }
+        else
+        {
+            // Continue parsing the next term
+            left = Expr_BinOp(operator, left, right);
+        }
+    }
+    (*i)--;
+
+    return left;
 }
 
 // `i` should start at `{`
@@ -193,14 +296,22 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
         {
             switch(tokens->content[(*i)+1].type)
             {
+                break;
                 case TOK_EQUALS:
                 {
+                    //ID = 1+1+1
                     String ID = tokens->content[*i].str;
                     Token tok = tokens->content[(*i)+2];
                     
                     (*i) += 2;
-
-                    return Expr_Set(ID, Expr_Literal(tok));
+                    if(tokens->content[(*i)+1].type == TOK_BINOP || tokens->content[(*i)].type == TOK_OPEN_PARENTHESIS)
+                    {
+                        return Expr_Set(ID, Parse_BinOp(i, tokens));
+                    }
+                    else
+                    {
+                        return Expr_Set(ID, Expr_Literal(tok));
+                    }
                 }
                 break;
                 case TOK_OPEN_PARENTHESIS:

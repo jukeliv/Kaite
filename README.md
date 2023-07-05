@@ -7,6 +7,12 @@ I dislike `batch`, which is why Kaite exists.
 # Where is it supported?
 It has been tested in Windows and Linux, both compiled with GCC.
 
+# Usage
+To use Kaite, simply run it in the terminal and input your .kai files. If desired, you can separate your code into files and pass the file names as arguments when calling "Kaite". Here is an example:
+```
+.\kaite file1.kai file2.kai file3.kai
+```
+
 # Syntax
 Kaite has a really simple syntax, but it may seem a bit strange to newcomers. Here's how things work:
 
@@ -57,7 +63,24 @@ Kaite already provides some predefined functions for you. Here they are:
 
 `global` -> Inside a `when` block, you have a local scope. However, if you want to make a variable accessible globally, you can use the `global` keyword followed by the variable name as an argument. In the global scope, the variable can be accessed from anywhere in the program.
 
+'remove': The `remove` function takes one argument, which is the variable thats going to be removed. It searches for the variable in both the global and local scopes. If the variable is found, it is removed from the scope.
+
 # Building Kaite
 To build Kaite, you can execute the "build.bat" script (yes, I know, it's a bit cringe). However, if you prefer, you can use any C compiler of your choice by running the following command in your terminal: `gcc main.c -o kaite.exe -O2`. 
+
+# Good Practices
+Here are some good practices to follow when coding in Kaite.
+# While working with multiple files
+If you are working with multiple Kaite files in a script, consider hiding them within a single Kaite script that executes them. For example, you can combine your three files into one script with the following code:
+```
+files = "file1.kai file2.kai file3.kai"
+cmd("kaite" files)
+```
+
+# Minimize Global Scope Variables
+When defining variables, avoid placing all of them in the global scope. Instead, try to minimize the number of variables in the global scope. After using a variable, if you no longer need it, remove it using the "remove" command. This command searches for the variable in both the global and local scopes and deletes it.
+
+# Define Variables at the Start
+Variables should be defined at the beginning of the file or within
 
 I hope you enjoy using Kaite! Have a great day :)
