@@ -47,6 +47,6 @@ void Interpret_Function(Expr expr);
 Variable Interpret_Literal(Expr node);
 Variable Interpret_BinOp(Expr node);
 Variable Interpret(Expr node);
-void Interpret_Program(Expr program);
+Variable_List Interpret_Program(Expr program);
 
 #endif // INTERPRETER_H_

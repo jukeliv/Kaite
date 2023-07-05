@@ -27,19 +27,12 @@ const char* concat_files(int argc, char** argv)
 	return buf;
 }
 
-int main(int argc, char** argv)
+Variable_List Execute_Code(const char* source)
 {
-	if(argc < 2)
-	{
-		// This ain't V-lang, i am not going to add that you can use features that are not implemented lol
-		Usage();
-		return 1;
-	}
-
-    Token_List tokens;
+	Token_List tokens;
 	Token_List_Init(&tokens);
 
-	Tokenize_File(&tokens, concat_files(argc, argv));
+	Tokenize_File(&tokens, source);
 	//printf("Tokenizer: Success\n");
 
 	Expr program = Expr_Program();
@@ -50,7 +43,20 @@ int main(int argc, char** argv)
 
 	Initialize_Global(); // initialize global scope
 	Interpret_Program(program);
+    
 	//printf("Interpreter: Success\n");
+}
+
+int main(int argc, char** argv)
+{
+	if(argc < 2)
+	{
+		// This ain't V-lang, i am not going to add that you can use features that are not implemented lol
+		Usage();
+		return 1;
+	}
+
+	Execute_Code(concat_files(argc, argv));
 
 	return 0;
 }

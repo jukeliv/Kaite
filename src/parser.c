@@ -177,7 +177,7 @@ Expr Parse_Group(size_t* i, Token_List* tokens)
         {
             (*i) = j;
             Expr_List_Push(&list, Parse_BinOp(i, tokens));
-            j = (*i);
+            j = (*i)-1;
         }
         else
         {

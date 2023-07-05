@@ -101,6 +101,20 @@ Variable_List* Get_Variable_List(Variable_List* variables, const char* variable)
         return variables;
 }
 
+//TODO: Throw warning when variable is in global scope
+void Globalize_Variable(const char* id)
+{
+    Variable* var = Get_Variable(id);
+    if(!var)
+    {
+        printf("ERROR: Couldn't find variable \"%s\"\n", id);
+        exit(1);
+    }
+    Variable_List_Push(&global_variables, *(var));
+    size_t index = Variable_List_Find(Get_Variable_List(local_variables, id), id);
+    Variable_List_Remove(local_variables, index);
+}
+
 void Interpret_Conditional(Expr expr)
 {
     expr.e.Conditional.program->type = Program;
@@ -118,9 +132,10 @@ void Interpret_Conditional(Expr expr)
     }
     else
     {
-
-        printf("ERROR: Unknown check in conditional \"when\"");
-        return;
+        if(Get_Variable(expr.e.Conditional.ID.content))
+        {
+            Interpret_Program(*expr.e.Conditional.program);
+        }
     }
 }
 
@@ -251,7 +266,7 @@ void Interpret_Function(Expr expr)
             case LITERAL_String:
             {
                 printf("ERROR: Wrong data-type passed to function \"input\"!!!\n");
-                return;
+                exit(1);
             }
             break;
             case LITERAL_Id:
@@ -260,7 +275,7 @@ void Interpret_Function(Expr expr)
                 if(!var)
                 {
                     printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
-                    return;
+                    exit(1);
                 }
                 switch(var->type)
                 {
@@ -284,12 +299,12 @@ void Interpret_Function(Expr expr)
         if(!group.e.Group.literals.size)
         {
             printf("ERROR: No arguments passed to \"input\"\n");
-            return;
+            exit(1);
         }
         else if(group.e.Group.literals.size > 1)
         {
             printf("ERROR: To many arguments passed to \"input\"\n");
-            return;
+            exit(1);
         }
 
         Expr literal = group.e.Group.literals.content[0];
@@ -299,20 +314,12 @@ void Interpret_Function(Expr expr)
             case LITERAL_String:
             {
                 printf("ERROR: Can't use non-Variable data-type in function \"global\"");
-                return;
+                exit(1);
             }
             break;
             case LITERAL_Id:
             {
-                Variable* var = Get_Variable(literal.e.Literal.value.content);
-                if(!var)
-                {
-                    printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
-                    return;
-                }
-                Variable_List_Push(&global_variables, *(var));
-                size_t index = Variable_List_Find(Get_Variable_List(local_variables, literal.e.Literal.value.content), literal.e.Literal.value.content);
-                Variable_List_Remove(local_variables, index);
+                Globalize_Variable(literal.e.Literal.value.content);
             }
             break;
         }
@@ -322,12 +329,12 @@ void Interpret_Function(Expr expr)
         if(!group.e.Group.literals.size)
         {
             printf("ERROR: No arguments passed to \"input\"\n");
-            return;
+            exit(1);
         }
         else if(group.e.Group.literals.size > 1)
         {
             printf("ERROR: To many arguments passed to \"input\"\n");
-            return;
+            exit(1);
         }
 
         Expr literal = group.e.Group.literals.content[0];
@@ -337,7 +344,7 @@ void Interpret_Function(Expr expr)
             case LITERAL_String:
             {
                 printf("ERROR: Can't use non-Variable data-type in function \"remove\"");
-                return;
+                exit(1);
             }
             break;
             case LITERAL_Id:
@@ -346,9 +353,15 @@ void Interpret_Function(Expr expr)
                 if(!var)
                 {
                     printf("ERROR: Couldn't find variable \"%s\"\n", literal.e.Literal.value.content);
-                    return;
+                    exit(1);
                 }
                 size_t index = Variable_List_Find(Get_Variable_List(local_variables, literal.e.Literal.value.content), literal.e.Literal.value.content);
+                if(index >= local_variables->size) // if variable is not in local scope, search in global
+                {
+                    index = Variable_List_Find(Get_Variable_List(&global_variables, literal.e.Literal.value.content), literal.e.Literal.value.content);
+                    Variable_List_Remove(&global_variables, index);
+                    return;
+                }
                 Variable_List_Remove(local_variables, index);
             }
             break;
@@ -357,7 +370,7 @@ void Interpret_Function(Expr expr)
     else
     {
         printf("TODO: Implement user-defined functions!!!\n");
-        return;
+        exit(1);
     }
 }
 
@@ -478,12 +491,12 @@ Variable Interpret(Expr node)
     return var;
 }
 
-void Interpret_Program(Expr program)
+Variable_List Interpret_Program(Expr program)
 {
     if(program.type != Program)
     {
         printf("ERROR: Can't parse non-Program AST Node!!!\n");
-        return;
+        exit(1);
     }
     
     Variable_List variables;
@@ -515,5 +528,5 @@ void Interpret_Program(Expr program)
 			break;
 		}
 	}
-    Variable_List_Free(&variables);
+    return variables;
 }

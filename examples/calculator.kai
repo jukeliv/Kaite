@@ -7,14 +7,10 @@ input(a)
 print("Enter another number")
 input(b)
 
-c = a+b
-print("The sum is equal to:" c)
+print("The sum is equal to:" a+b)
 
-c = a-b
-print("The sub is equal to:" c)
+print("The sub is equal to:" a-b)
 
-c = a*b
-print("The multiplication is equal to:" c)
+print("The multiplication is equal to:" a*b)
 
-c = a/b
-print("The division is equal to:" c)
+print("The division is equal to:" a/b)

@@ -31,7 +31,8 @@ print(bar) ; prints out "bar"
 ```
 
 # When
-The `when` keyword is similar to C's `#ifdef`. It internally checks if something is defined. Currently, it only supports checking if you are on a Windows or Linux PC. It works by passing a string, like this: `when "WINDOWS"`. A code block works just like in C, here is an example:
+The `when` keyword is similar to C's `#ifdef`. It internally checks if something is defined. Currently, it supports checking if you are on a Windows or Linux PC and if there is a variable defined in current scopes ( local and global ).
+It works by passing a string, like this: `when "WINDOWS"`. A code block works just like in C, here is an example:
 ```
 when "LINUX"
 {
@@ -63,7 +64,7 @@ Kaite already provides some predefined functions for you. Here they are:
 
 `global` -> Inside a `when` block, you have a local scope. However, if you want to make a variable accessible globally, you can use the `global` keyword followed by the variable name as an argument. In the global scope, the variable can be accessed from anywhere in the program.
 
-'remove': The `remove` function takes one argument, which is the variable thats going to be removed. It searches for the variable in both the global and local scopes. If the variable is found, it is removed from the scope.
+`remove`: The `remove` function takes one argument, which is the variable thats going to be removed. It searches for the variable in both the global and local scopes. If the variable is found, it is removed from the scope.
 
 # Building Kaite
 To build Kaite, you can execute the "build.bat" script (yes, I know, it's a bit cringe). However, if you prefer, you can use any C compiler of your choice by running the following command in your terminal: `gcc main.c -o kaite.exe -O2`. 
