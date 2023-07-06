@@ -115,7 +115,14 @@ void Globalize_Variable(const char* id)
     Variable_List_Remove(local_variables, index);
 }
 
-void Interpret_Conditional(Expr expr)
+void Interpret_Conditional_If(Expr expr)
+{
+    expr.e.Conditional.program->type = Program;
+    if(Interpret(*expr.e.Conditional.expr).value.num)
+        Interpret_Program(*expr.e.Conditional.program);
+}
+
+void Interpret_Conditional_When(Expr expr)
 {
     expr.e.Conditional.program->type = Program;
     if(!strcmp(expr.e.Conditional.ID.content, "WINDOWS"))
@@ -281,8 +288,9 @@ void Interpret_Function(Expr expr)
                 {
                     case Var_String:
                     {
-                        char buf[256] = {0};
-                        scanf("%256s", &buf);
+                        char* buf = calloc(255, 1);
+                        fgets(buf, sizeof(buf), stdin);
+
                         var->value.str = String_CStr(buf);
                     }
                     break;
@@ -402,10 +410,104 @@ Variable Interpret_Literal(Expr node)
     return var;
 }
 
-Variable Interpret_BinOp(Expr node)
+Variable Interpret_Arithmetic(ArithmeticOperators op, Variable left, Variable right)
 {
-    Variable left_result = Interpret(*node.e.BinOp.left);
-    Variable right_result = Interpret(*node.e.BinOp.right);
+    Variable var;
+    var.type = left.type;
+
+    if(op == ARITHMETIC_PLUS)
+    {
+        if(left.type == Var_String)
+        {
+            var.value.str = String_Concat(left.value.str, right.value.str);
+            return var;
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num + right.value.num;
+            return var;
+        }
+    }
+    else if (op == ARITHMETIC_MINUS)
+    {
+        if(left.type == Var_String)
+        {
+            printf("ERROR: ARITHMETIC_MINUS not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num - right.value.num;
+            return var;
+        }
+    }
+    else if (op == ARITHMETIC_MULTIPLICATION)
+    {
+        if(left.type == Var_String)
+        {
+            printf("ERROR: ARITHMETIC_MULTIPLICATION not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num * right.value.num;
+            return var;
+        }
+    }
+    else if (op == ARITHMETIC_DIVISION)
+    {
+        if(left.type == Var_String)
+        {
+            printf("ERROR: ARITHMETIC_DIVISION not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num / right.value.num;
+            return var;
+        }
+    }
+    return var;
+}
+
+Variable Interpret_Logic(LogicOperators op, Variable left, Variable right)
+{
+    Variable var;
+    var.type = Var_Number;
+
+    if(op == LOGIC_EQUALS)
+    {
+        if(left.type == Var_String)
+        {
+            var.value.num = String_Compare(left.value.str, right.value.str);
+            return var;
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num == right.value.num;
+            return var;
+        }
+    }
+    else if (op == LOGIC_NOT_EQUALS)
+    {
+        if(left.type == Var_String)
+        {
+            var.value.num = !String_Compare(left.value.str, right.value.str);
+            return var;
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num != right.value.num;
+            return var;
+        }
+    }
+    return var;
+}
+
+Variable Interpret_Binary(Expr node)
+{
+    Variable left_result = Interpret(*node.e.Binary.left);
+    Variable right_result = Interpret(*node.e.Binary.right);
 
     if(left_result.type != right_result.type)
     {
@@ -413,71 +515,27 @@ Variable Interpret_BinOp(Expr node)
         exit(1);
     }
 
-    Variable var;
-    var.type = left_result.type;
-
-    if (node.e.BinOp.op == BINOP_PLUS)
+    switch(node.e.Binary.type)
     {
-        if(left_result.type == Var_String)
+        case BINARY_Arithmetic:
         {
-            var.value.str = String_Concat(left_result.value.str, right_result.value.str);
-            return var;
+            return Interpret_Arithmetic(node.e.Binary.operator.arithmetic, left_result, right_result);
         }
-        if(left_result.type == Var_Number)
+        break;
+        case BINARY_Logic:
         {
-            var.value.num = left_result.value.num + right_result.value.num;
-            return var;
+            return Interpret_Logic(node.e.Binary.operator.logic, left_result, right_result);
         }
+        break;
     }
-    else if (node.e.BinOp.op == BINOP_MINUS)
-    {
-        if(left_result.type == Var_String)
-        {
-            printf("ERROR: BINOP_MINUS not implemented for Strings!!!\n");
-            exit(1);
-        }
-        if(left_result.type == Var_Number)
-        {
-            var.value.num = left_result.value.num - right_result.value.num;
-            return var;
-        }
-    }
-    else if (node.e.BinOp.op == BINOP_MULTIPLICATION)
-    {
-        if(left_result.type == Var_String)
-        {
-            printf("ERROR: BINOP_MULTIPLICATION not implemented for Strings!!!\n");
-            exit(1);
-        }
-        if(left_result.type == Var_Number)
-        {
-            var.value.num = left_result.value.num * right_result.value.num;
-            return var;
-        }
-    }
-    else if (node.e.BinOp.op == BINOP_DIVISION)
-    {
-        if(left_result.type == Var_String)
-        {
-            printf("ERROR: BINOP_DIVISION not implemented for Strings!!!\n");
-            exit(1);
-        }
-        if(left_result.type == Var_Number)
-        {
-            var.value.num = left_result.value.num / right_result.value.num;
-            return var;
-        }
-    }
-
-    return var;
 }
 
 Variable Interpret(Expr node)
 {
     Variable var;
-    if (node.type == BinOp)
+    if (node.type == Binary)
     {
-        var = Interpret_BinOp(node);
+        var = Interpret_Binary(node);
     }
     else if (node.type == Literal)
     {
@@ -512,8 +570,17 @@ Variable_List Interpret_Program(Expr program)
 		{
             case Conditional:
             {
-                Interpret_Conditional(expr);
-                local_variables = &variables; // we need to reset the local scope after going to another scope
+                switch(expr.e.Conditional.type)
+                {
+                    case CONDITIONAL_If:
+                        Interpret_Conditional_If(expr);
+                        local_variables = &variables; // we need to reset the local scope after going to another scope
+                    break;
+                    case CONDITIONAL_When:
+                        Interpret_Conditional_When(expr);
+                        local_variables = &variables; // we need to reset the local scope after going to another scope
+                    break;
+                }
             }
             break;
 			case Set:

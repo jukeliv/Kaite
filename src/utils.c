@@ -33,6 +33,21 @@ String String_Concat(String str1, String str2) {
     return result;
 }
 
+bool String_Compare(String str, String str2)
+{
+    if(str.size != str2.size)
+    {
+        printf("%d != %d", str.size, str2.size);
+        return false;
+    }
+    for(size_t i = 0; i < str.size; ++i)
+    {
+        if(str.content[i] != str2.content[i])
+            return false;
+    }
+    return true;
+}
+
 char* read_file(const char* path) {
     FILE* fp = fopen(path, "rb");
     if (!fp) {

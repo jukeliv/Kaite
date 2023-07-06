@@ -27,6 +27,12 @@ void Expr_List_Push(Expr_List* list, Expr expr)
     list->content[list->size++] = expr;
 }
 
+
+bool isBinary(Token tok)
+{
+    return (tok.type == TOK_ARITHMETIC || tok.type == TOK_LOGIC);
+}
+
 Expr Expr_Program()
 {
     Expr expr;
@@ -103,22 +109,42 @@ Expr Expr_Literal(Token tok)
     return literal;
 }
 
-Expr Expr_BinOp(BinaryOperators op, Expr left, Expr right)
+Expr Expr_Binary_Arithmetic(ArithmeticOperators op, Expr left, Expr right)
 {
     Expr expr;
     
-    expr.type = BinOp;
+    expr.type = Binary;
+    expr.e.Binary.type = BINARY_Arithmetic;
 
     // Assign the left operand directly
-    expr.e.BinOp.left = malloc(sizeof(Expr));
-    *expr.e.BinOp.left = left;
+    expr.e.Binary.left = malloc(sizeof(Expr));
+    *expr.e.Binary.left = left;
 
-
-    expr.e.BinOp.op = op;
+    expr.e.Binary.operator.arithmetic = op;
     
     // Assign the right operand directly
-    expr.e.BinOp.right = malloc(sizeof(Expr));
-    *expr.e.BinOp.right = right;
+    expr.e.Binary.right = malloc(sizeof(Expr));
+    *expr.e.Binary.right = right;
+
+    return expr;
+}
+
+Expr Expr_Binary_Logic(LogicOperators op, Expr left, Expr right)
+{
+    Expr expr;
+    
+    expr.type = Binary;
+    expr.e.Binary.type = BINARY_Logic;
+
+    // Assign the left operand directly
+    expr.e.Binary.left = malloc(sizeof(Expr));
+    *expr.e.Binary.left = left;
+
+    expr.e.Binary.operator.logic = op;
+    
+    // Assign the right operand directly
+    expr.e.Binary.right = malloc(sizeof(Expr));
+    *expr.e.Binary.right = right;
 
     return expr;
 }
@@ -148,12 +174,30 @@ Expr Expr_Set(String ID, Expr literal)
     return expr;
 }
 
-Expr Expr_Conditional(String ID, Expr program)
+Expr Expr_Conditional_When(String ID, Expr program)
 {
     Expr expr;
     expr.type = Conditional;
     expr.e.Conditional.ID = ID;
+
+    expr.e.Conditional.type = CONDITIONAL_When;
     
+    expr.e.Conditional.program = malloc(sizeof(Expr));
+    *expr.e.Conditional.program = program;
+
+    return expr;
+}
+
+Expr Expr_Conditional_If(Expr e, Expr program)
+{
+    Expr expr;
+    expr.type = Conditional;
+
+    expr.e.Conditional.type = CONDITIONAL_If;
+
+    expr.e.Conditional.expr = malloc(sizeof(Expr));
+    *expr.e.Conditional.expr = e;
+
     expr.e.Conditional.program = malloc(sizeof(Expr));
     *expr.e.Conditional.program = program;
 
@@ -173,10 +217,10 @@ Expr Parse_Group(size_t* i, Token_List* tokens)
 
     for(; j < end; ++j)
     {
-        if(tokens->content[j+1].type == TOK_BINOP || tokens->content[j].type == TOK_OPEN_PARENTHESIS)
+        if(isBinary(tokens->content[j+1]) || tokens->content[j].type == TOK_OPEN_PARENTHESIS)
         {
             (*i) = j;
-            Expr_List_Push(&list, Parse_BinOp(i, tokens));
+            Expr_List_Push(&list, Parse_Binary(i, tokens));
             j = (*i)-1;
         }
         else
@@ -195,13 +239,13 @@ Expr Parse_Function(size_t* i, Token_List* tokens)
     return Expr_Function(ID, expr);
 }
 
-Expr Parse_BinOp(size_t* i, Token_List* tokens)
+Expr Parse_Binary(size_t* i, Token_List* tokens)
 {
     Expr left;
     if (tokens->content[*i].type == TOK_OPEN_PARENTHESIS)
     {
         (*i)++;
-        left = Expr_Parenthesized(Parse_BinOp(i, tokens));
+        left = Expr_Parenthesized(Parse_Binary(i, tokens));
     }
     else
     {
@@ -210,16 +254,18 @@ Expr Parse_BinOp(size_t* i, Token_List* tokens)
 
     (*i)++;
 
-    while (tokens->content[*i].type == TOK_BINOP)
+    while (isBinary(tokens->content[*i]))
     {
-        BinaryOperators operator = tokens->content[*i].str.content[0]; // Get the binary operator
+
+        char operator = tokens->content[*i].str.content[0]; // Get the binary operator
+        bool isArithmetic = tokens->content[*i].type == TOK_ARITHMETIC;
         (*i)++;
 
         Expr right;
         if (tokens->content[*i].type == TOK_OPEN_PARENTHESIS)
         {
             (*i)++;
-            right = Expr_Parenthesized(Parse_BinOp(i, tokens));
+            right = Expr_Parenthesized(Parse_Binary(i, tokens));
         }
         else
         {
@@ -232,12 +278,26 @@ Expr Parse_BinOp(size_t* i, Token_List* tokens)
         if (tokens->content[*i].type == TOK_CLOSE_PARENTHESIS)
         {
             // Return the current expression if it ends with a closing parenthesis
-            return Expr_BinOp(operator, left, right);
+            if(isArithmetic)
+            {
+                return Expr_Binary_Arithmetic(operator, left, right);
+            }
+            else
+            {
+                return Expr_Binary_Logic(operator, left, right);
+            }
         }
         else
         {
             // Continue parsing the next term
-            left = Expr_BinOp(operator, left, right);
+            if(isArithmetic)
+            {
+                left = Expr_Binary_Arithmetic(operator, left, right);
+            }
+            else
+            {
+                left = Expr_Binary_Logic(operator, left, right);
+            }
         }
     }
     (*i)--;
@@ -250,19 +310,18 @@ Expr Parse_Code_Block(size_t* i, Token_List* tokens)
 {
     if(tokens->content[(*i)].type != TOK_OPEN_CURLY)
     {
-        printf("ERROR: You are not opening code block\n");
+        printf("ERROR: You are not opening code block ( %d : %s )\n", tokens->content[(*i)].type, tokens->content[(*i)].str.content);
         exit(1);
     }
     Expr block = Expr_Program();
 
     size_t j = (*i)+1;
-    for(;tokens->content[j].type != TOK_CLOSE_CURLY; ++j)
+    
+    size_t end = j;
+    for(;tokens->content[end].type != TOK_CLOSE_CURLY; ++end);
+
+    for(;j < end; ++j)
     {
-        if(j >= tokens->size)
-        {
-            printf("ERROR: You forgot to close code block!!!\n");
-            exit(1);
-        }
         Expr_List_Push(&block.e.Program.program, Parse_Tokens(&j, tokens));
     }
     (*i) = j;
@@ -271,16 +330,36 @@ Expr Parse_Code_Block(size_t* i, Token_List* tokens)
 
 Expr Parse_Conditional(size_t* i, Token_List* tokens)
 {
-    if(tokens->content[(*i)+1].type != TOK_STR)
+    Conditional_Type type;
+    switch (tokens->content[(*i)].type)
+    {
+        case TOK_IF:
+            type = CONDITIONAL_If;
+        break;
+        case TOK_WHEN:
+            type = CONDITIONAL_When;
+        break;
+    }
+    
+    if(tokens->content[(*i)+1].type != TOK_STR && type == CONDITIONAL_When)
     {
         printf("ERROR: Trying to pass non-STR to conditional when!!!\n");
         exit(1);
     }
-    String ID = tokens->content[++(*i)].str;
 
-    ++(*i);
-
-    return Expr_Conditional(ID, Parse_Code_Block(i, tokens));
+    if(type == CONDITIONAL_If)
+    {
+        ++(*i);
+        Expr bin = Parse_Binary(i, tokens);
+        ++(*i);
+        return Expr_Conditional_If(bin, Parse_Code_Block(i, tokens));
+    }
+    else if(type == CONDITIONAL_When)
+    {
+        String ID = tokens->content[++(*i)].str;
+        ++(*i);
+        return Expr_Conditional_When(ID, Parse_Code_Block(i, tokens));
+    }
 }
 
 Expr Parse_Tokens(size_t* i, Token_List* tokens)
@@ -288,6 +367,10 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
     switch(tokens->content[*i].type)
     {
         case TOK_WHEN:
+        {
+            return Parse_Conditional(i, tokens);
+        }
+        case TOK_IF:
         {
             return Parse_Conditional(i, tokens);
         }
@@ -304,9 +387,9 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
                     Token tok = tokens->content[(*i)+2];
                     
                     (*i) += 2;
-                    if(tokens->content[(*i)+1].type == TOK_BINOP || tokens->content[(*i)].type == TOK_OPEN_PARENTHESIS)
+                    if(isBinary(tokens->content[(*i)+1]) || tokens->content[(*i)].type == TOK_OPEN_PARENTHESIS)
                     {
-                        return Expr_Set(ID, Parse_BinOp(i, tokens));
+                        return Expr_Set(ID, Parse_Binary(i, tokens));
                     }
                     else
                     {

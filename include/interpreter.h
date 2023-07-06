@@ -45,7 +45,7 @@ void Interpret_Conditional(Expr expr);
 void Interpret_Set(Expr expr);
 void Interpret_Function(Expr expr);
 Variable Interpret_Literal(Expr node);
-Variable Interpret_BinOp(Expr node);
+Variable Interpret_Binary(Expr node);
 Variable Interpret(Expr node);
 Variable_List Interpret_Program(Expr program);
 

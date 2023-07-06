@@ -14,6 +14,7 @@ typedef struct String {
 
 String String_CStr(const char* cstr);
 String String_Concat(String str, String str2);
+bool String_Compare(String str, String str2);
 
 char* read_file(const char* path);
 

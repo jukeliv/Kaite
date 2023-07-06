@@ -22,7 +22,7 @@ typedef enum
     Function,
     Conditional,
     Literal,
-    BinOp,
+    Binary,
     Parenthesized
 }Expr_Type;
 
@@ -40,6 +40,18 @@ typedef enum
     LITERAL_Number,
     LITERAL_Id
 }Literal_Type;
+
+typedef enum
+{
+    CONDITIONAL_If,
+    CONDITIONAL_When
+}Conditional_Type;
+
+typedef enum
+{
+    BINARY_Arithmetic,
+    BINARY_Logic
+}Binary_Type;
 
 typedef struct Expr
 {
@@ -66,15 +78,22 @@ typedef struct Expr
 		}Function;
 
         struct{
+            Conditional_Type type;
             String ID; // when ID [program] end
+            struct Expr* expr; // Eval this to see if you have to execute
 			struct Expr* program;
 		}Conditional;
 
         struct{
+            Binary_Type type;
             struct Expr* left;
-            BinaryOperators op;
+            union
+            {
+                ArithmeticOperators arithmetic;
+                LogicOperators logic;
+            }operator;
             struct Expr* right;
-        }BinOp;
+        }Binary;
 
         struct{
             struct Expr* expr;
@@ -90,18 +109,23 @@ typedef struct Expr
 void Expr_List_Init(Expr_List* list);
 void Expr_List_Push(Expr_List* list, Expr expr);
 
+bool isBinary(Token tok);
+
 Expr Expr_Group(Expr_List list);
 Expr Expr_Function(String ID, Expr group);
 Expr Expr_Literal(Token tok);
-Expr Expr_BinOp(BinaryOperators op, Expr left, Expr right);
+Expr Expr_Binary_Arithmetic(ArithmeticOperators op, Expr left, Expr right);
+Expr Expr_Binary_Logic(LogicOperators op, Expr left, Expr right);
 Expr Expr_Parenthesized(Expr node);
 Expr Expr_Set(String ID, Expr literal);
+Expr Expr_Conditional_When(String ID, Expr program);
+Expr Expr_Conditional_If(Expr e, Expr program);
 Expr Expr_Conditional(String ID, Expr program);
 Expr Expr_Program();
 
 Expr Parse_Group(size_t* i, Token_List* tokens);
 Expr Parse_Function(size_t* i, Token_List* tokens);
-Expr Parse_BinOp(size_t* i, Token_List* tokens);
+Expr Parse_Binary(size_t* i, Token_List* tokens);
 Expr Parse_Tokens(size_t* i, Token_List* tokens);
 Expr Parse_Code_Block(size_t* i, Token_List* tokens);// `i` should start at `{`
 Expr Parse_Conditional(size_t* i, Token_List* tokens);

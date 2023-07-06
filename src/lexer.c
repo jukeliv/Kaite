@@ -59,28 +59,53 @@ int Tokenize_File(Token_List* tokens, const char* source) {
                 continue;
 
             case '=':
-                lex[0] = '=';
-                Token_List_Push(tokens, Token_New(TOK_EQUALS, lex));
+                if(source[i+1] == '=')
+                {
+                    lex[0] = LOGIC_EQUALS;
+                    ++i;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
+                }
+                else
+                {
+                    lex[0] = '=';
+                    Token_List_Push(tokens, Token_New(TOK_EQUALS, lex));
+                }
                 continue;
+            break;
+
+            case '!':
+                if(source[i+1] == '=')
+                {
+                    lex[0] = LOGIC_NOT_EQUALS;
+                    ++i;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
+                }
+                else
+                {
+                    printf("TODO: Implement Unary operators!!!\n");
+                    exit(1);
+                }
+                continue;
+            break;
 
             case '+':
-                lex[0] = BINOP_PLUS;
-                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+                lex[0] = ARITHMETIC_PLUS;
+                Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
             continue;
             
             case '-':
-                lex[0] = BINOP_MINUS;
-                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+                lex[0] = ARITHMETIC_MINUS;
+                Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
             continue;
             
             case '*':
-                lex[0] = BINOP_MULTIPLICATION;
-                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+                lex[0] = ARITHMETIC_MULTIPLICATION;
+                Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
             continue;
             
             case '/':
-                lex[0] = BINOP_DIVISION;
-                Token_List_Push(tokens, Token_New(TOK_BINOP, lex));
+                lex[0] = ARITHMETIC_DIVISION;
+                Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
             continue;
 
             case '(':
@@ -118,6 +143,10 @@ int Tokenize_File(Token_List* tokens, const char* source) {
                     if(!strcmp(lex, "when"))
                     {
                         Token_List_Push(tokens, Token_New(TOK_WHEN, lex));
+                    }
+                    else if(!strcmp(lex, "if"))
+                    {
+                        Token_List_Push(tokens, Token_New(TOK_IF, lex));
                     }
                     else
                     {

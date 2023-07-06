@@ -8,11 +8,16 @@
 #include "utils.h"
 
 typedef enum {
-    BINOP_PLUS,
-    BINOP_MINUS,
-    BINOP_DIVISION,
-    BINOP_MULTIPLICATION
-}BinaryOperators;
+    ARITHMETIC_PLUS,
+    ARITHMETIC_MINUS,
+    ARITHMETIC_DIVISION,
+    ARITHMETIC_MULTIPLICATION
+}ArithmeticOperators;
+
+typedef enum {
+    LOGIC_EQUALS,
+    LOGIC_NOT_EQUALS
+}LogicOperators;
 
 typedef enum Token_Type {
     TOK_EQUALS,
@@ -22,9 +27,11 @@ typedef enum Token_Type {
     TOK_OPEN_PARENTHESIS,
     TOK_CLOSE_PARENTHESIS,
     TOK_WHEN,
+    TOK_IF,
     TOK_OPEN_CURLY,
     TOK_CLOSE_CURLY,
-    TOK_BINOP
+    TOK_ARITHMETIC,
+    TOK_LOGIC
 } Token_Type;
 
 typedef struct Token {
