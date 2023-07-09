@@ -1,6 +1,6 @@
-#include "..\include\lexer.h"
-#include "..\include\parser.h"
-#include "..\include\interpreter.h"
+#include "../include/lexer.h"
+#include "../include/parser.h"
+#include "../include/interpreter.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,19 +32,18 @@ Variable_List Execute_Code(const char* source)
 	Token_List tokens;
 	Token_List_Init(&tokens);
 
-	Tokenize_File(&tokens, source);
-	//printf("Tokenizer: Success\n");
-
+	if(Tokenize_File(&tokens, source))
+	{
+		exit(1);
+	}
 	Expr program = Expr_Program();
 
 	Parse_Program(&program, &tokens);
 	Token_List_Free(&tokens);
-	//printf("Parser: Success\n");
 
 	Initialize_Global(); // initialize global scope
-	Interpret_Program(program);
-    
-	//printf("Interpreter: Success\n");
+	
+	Interpret_Program(program, NULL);
 }
 
 int main(int argc, char** argv)

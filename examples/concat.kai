@@ -1,17 +1,3 @@
-; Initialize variables
-strA = ""
-strB = ""
-
-print("String Concat - Example")
-
-print("") ; newline
-
-print("First string:")
-input(strA)
-
-print("Second string:")
-input(strB)
-
-print("") ; newline
-
-print(strA + " " + strB)
+b = 1
+b = b + 1
+print(b)

@@ -1,16 +1,3 @@
-; Initialize variables
-a = 0
-b = 0
-
-print("Enter first number")
-input(a)
-print("Enter another number")
-input(b)
-
-print("The sum is equal to:" a+b)
-
-print("The sub is equal to:" a-b)
-
-print("The multiplication is equal to:" a*b)
-
-print("The division is equal to:" a/b)
+a = 1
+b = a
+print(a)

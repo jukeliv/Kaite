@@ -1,4 +1,4 @@
-#include "..\include\utils.h"
+#include "../include/utils.h"
 
 String String_CStr(const char* cstr) {
     String str;
@@ -33,19 +33,33 @@ String String_Concat(String str1, String str2) {
     return result;
 }
 
+void String_Init(String* str)
+{
+    str->heap = 1;
+    str->size = 0;
+    str->content = malloc(str->heap);
+}
+
 bool String_Compare(String str, String str2)
 {
     if(str.size != str2.size)
     {
-        printf("%d != %d", str.size, str2.size);
         return false;
     }
     for(size_t i = 0; i < str.size; ++i)
     {
         if(str.content[i] != str2.content[i])
+        {
             return false;
+        }
     }
     return true;
+}
+
+float String_to_Float(String str)
+{
+    printf("%s : %d\n", str.content, atof(str.content));
+    return atof(str.content);
 }
 
 char* read_file(const char* path) {

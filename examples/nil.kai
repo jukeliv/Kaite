@@ -1,0 +1,8 @@
+int = 1
+if 1
+{
+    print("lola")
+    print("lola")
+    print("lola")
+    print("lola")
+}

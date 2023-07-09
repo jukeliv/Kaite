@@ -3,6 +3,9 @@
         "stdio.h": "c",
         "stdlib.h": "c",
         "limits.h": "c",
-        "utils.h": "c"
+        "utils.h": "c",
+        "interpreter.h": "c",
+        "parser.h": "c",
+        "lexer.h": "c"
     }
 }

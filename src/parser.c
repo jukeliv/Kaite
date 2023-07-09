@@ -1,4 +1,4 @@
-#include "..\include\parser.h"
+#include "../include/parser.h"
 
 void Expr_List_Init(Expr_List* list)
 {
@@ -79,6 +79,7 @@ Expr Expr_Literal(Token tok)
     Expr literal;
     literal.type = Literal;
     literal.e.Literal.value = tok.str;
+
     switch(tok.type)
     {
         case TOK_STR:
@@ -149,6 +150,7 @@ Expr Expr_Binary_Logic(LogicOperators op, Expr left, Expr right)
     return expr;
 }
 
+
 Expr Expr_Parenthesized(Expr node)
 {
     Expr expr;
@@ -204,31 +206,44 @@ Expr Expr_Conditional_If(Expr e, Expr program)
     return expr;
 }
 
+Expr Expr_Conditional_While(Expr e, Expr program)
+{
+    Expr expr;
+    expr.type = Conditional;
+
+    expr.e.Conditional.type = CONDITIONAL_While;
+
+    expr.e.Conditional.expr = malloc(sizeof(Expr));
+    *expr.e.Conditional.expr = e;
+
+    expr.e.Conditional.program = malloc(sizeof(Expr));
+    *expr.e.Conditional.program = program;
+
+    return expr;
+}
+
 Expr Parse_Group(size_t* i, Token_List* tokens)
 {
     Expr_List list;
     Expr_List_Init(&list);
 
-    size_t j = (*i);
-    ++j;  // it needs to skip the first TOK_OPEN_PARENTHESIS so it can parse properly
+    (*i)++;  // it needs to skip the first TOK_OPEN_PARENTHESIS so it can parse properly
     
-    size_t end = j;
+    size_t end = *i;
     for(;tokens->content[end].type != TOK_CLOSE_PARENTHESIS; ++end);
 
-    for(; j < end; ++j)
+    for(; *i < end; (*i)++)
     {
-        if(isBinary(tokens->content[j+1]) || tokens->content[j].type == TOK_OPEN_PARENTHESIS)
+        if(isBinary(tokens->content[(*i)+1]) || tokens->content[*i].type == TOK_OPEN_PARENTHESIS)
         {
-            (*i) = j;
             Expr_List_Push(&list, Parse_Binary(i, tokens));
-            j = (*i)-1;
+            --(*i);
         }
         else
         {
-            Expr_List_Push(&list, Expr_Literal(tokens->content[j]));
+            Expr_List_Push(&list, Expr_Literal(tokens->content[*i]));
         }
     }
-    (*i) = j;
     return Expr_Group(list);
 }
 
@@ -305,6 +320,18 @@ Expr Parse_Binary(size_t* i, Token_List* tokens)
     return left;
 }
 
+Expr Parse(size_t* i, Token_List* tokens)
+{
+    if(isBinary(tokens->content[(*i)+1]) || tokens->content[*i].type == TOK_OPEN_PARENTHESIS)
+    {
+        return Parse_Binary(i, tokens);
+    }
+    else
+    {
+        return Expr_Literal(tokens->content[*i]);
+    }
+}
+
 // `i` should start at `{`
 Expr Parse_Code_Block(size_t* i, Token_List* tokens)
 {
@@ -314,17 +341,14 @@ Expr Parse_Code_Block(size_t* i, Token_List* tokens)
         exit(1);
     }
     Expr block = Expr_Program();
-
-    size_t j = (*i)+1;
-    
-    size_t end = j;
+    (*i)++;
+    size_t end = *i;
     for(;tokens->content[end].type != TOK_CLOSE_CURLY; ++end);
 
-    for(;j < end; ++j)
+    for(;*i < end; (*i)++)
     {
-        Expr_List_Push(&block.e.Program.program, Parse_Tokens(&j, tokens));
+        Expr_List_Push(&block.e.Program.program, Parse_Tokens(i, tokens));
     }
-    (*i) = j;
     return block;
 }
 
@@ -335,30 +359,40 @@ Expr Parse_Conditional(size_t* i, Token_List* tokens)
     {
         case TOK_IF:
             type = CONDITIONAL_If;
-        break;
+            break;
+        case TOK_WHILE:
+            type = CONDITIONAL_While;
+            break;
         case TOK_WHEN:
             type = CONDITIONAL_When;
-        break;
+            break;
+        default:
+            printf("ERROR: Invalid conditional type (%d)\n", tokens->content[(*i)].type);
+            exit(1);
     }
-    
-    if(tokens->content[(*i)+1].type != TOK_STR && type == CONDITIONAL_When)
-    {
-        printf("ERROR: Trying to pass non-STR to conditional when!!!\n");
-        exit(1);
-    }
+    (*i)++;
 
-    if(type == CONDITIONAL_If)
+    if (type == CONDITIONAL_If || type == CONDITIONAL_While)
     {
-        ++(*i);
-        Expr bin = Parse_Binary(i, tokens);
-        ++(*i);
-        return Expr_Conditional_If(bin, Parse_Code_Block(i, tokens));
+        Expr bin = Parse(i, tokens);
+        (*i)++;
+        return type == CONDITIONAL_If ? Expr_Conditional_If(bin, Parse_Code_Block(i, tokens)) :
+                                        Expr_Conditional_While(bin, Parse_Code_Block(i, tokens));
     }
-    else if(type == CONDITIONAL_When)
+    else if (type == CONDITIONAL_When)
     {
-        String ID = tokens->content[++(*i)].str;
-        ++(*i);
+        if (tokens->content[(*i)].type != TOK_STR)
+        {
+            printf("ERROR: Trying to pass non-STR to conditional when!!!\n");
+            exit(1);
+        }
+        String ID = tokens->content[(*i)++].str;
         return Expr_Conditional_When(ID, Parse_Code_Block(i, tokens));
+    }
+    else
+    {
+        printf("ERROR: Unknown conditional type (%d)\n", type);
+        exit(1);
     }
 }
 
@@ -375,6 +409,11 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
             return Parse_Conditional(i, tokens);
         }
         break;
+        case TOK_WHILE:
+        {
+            return Parse_Conditional(i, tokens);
+        }
+        break;
 		case TOK_ID:
         {
             switch(tokens->content[(*i)+1].type)
@@ -387,14 +426,7 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
                     Token tok = tokens->content[(*i)+2];
                     
                     (*i) += 2;
-                    if(isBinary(tokens->content[(*i)+1]) || tokens->content[(*i)].type == TOK_OPEN_PARENTHESIS)
-                    {
-                        return Expr_Set(ID, Parse_Binary(i, tokens));
-                    }
-                    else
-                    {
-                        return Expr_Set(ID, Expr_Literal(tok));
-                    }
+                    return Expr_Set(ID, Parse(i, tokens));
                 }
                 break;
                 case TOK_OPEN_PARENTHESIS:
@@ -404,7 +436,7 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
                 break;
                 default:
                 {
-                    printf("%d : %s\n", tokens->content[*i].type, tokens->content[*i].str.content);
+                    printf("%d -> %d : %s\n", *i, tokens->content[*i].type, tokens->content[*i].str.content);
                     printf("ERROR: Incorrect Syntax!!! ( %d : %s ) \n", tokens->content[(*i)+1].type, tokens->content[(*i)+1].str.content);
                     exit(1);
                 }
@@ -414,7 +446,7 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
         break;
         default:
         {
-            printf("TODO: Think about another error message\n");
+            printf("TODO: Think about another error message ( %d )\n", *i);
             printf("%d : %s", tokens->content[*i].type, tokens->content[*i].str.content);
             exit(1);
         }
@@ -427,6 +459,7 @@ void Parse_Program(Expr* program, Token_List* tokens)
 {
     for(size_t i = 0; i < tokens->size; ++i)
     {
+        printf("%d : %s\n", tokens->content[i].type, tokens->content[i].str.content);
 		Expr_List_Push(&program->e.Program.program, Parse_Tokens(&i, tokens));
 	}
 }

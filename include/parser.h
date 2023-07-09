@@ -44,7 +44,8 @@ typedef enum
 typedef enum
 {
     CONDITIONAL_If,
-    CONDITIONAL_When
+    CONDITIONAL_When,
+    CONDITIONAL_While
 }Conditional_Type;
 
 typedef enum
@@ -129,7 +130,6 @@ Expr Parse_Binary(size_t* i, Token_List* tokens);
 Expr Parse_Tokens(size_t* i, Token_List* tokens);
 Expr Parse_Code_Block(size_t* i, Token_List* tokens);// `i` should start at `{`
 Expr Parse_Conditional(size_t* i, Token_List* tokens);
-Expr Parse_Tokens(size_t* i, Token_List* tokens);
 
 void Parse_Program(Expr* program, Token_List* tokens);
 

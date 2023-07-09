@@ -1,4 +1,4 @@
-#include "..\include\lexer.h"
+#include "../include/lexer.h"
 
 Token Token_New(Token_Type type, const char* str) {
     Token tok;
@@ -33,8 +33,7 @@ void Token_List_Free(Token_List* tokens)
 {
     tokens->heap = 0;
     tokens->size = 0;
-    if(tokens->content)
-        free(tokens->content);
+    free(tokens->content);
 }
 
 int Tokenize_File(Token_List* tokens, const char* source) {
@@ -56,7 +55,7 @@ int Tokenize_File(Token_List* tokens, const char* source) {
             case ';': // Comment
                 while (source[i] != '\n')
                     ++i;
-                continue;
+            break;
 
             case '=':
                 if(source[i+1] == '=')
@@ -70,7 +69,6 @@ int Tokenize_File(Token_List* tokens, const char* source) {
                     lex[0] = '=';
                     Token_List_Push(tokens, Token_New(TOK_EQUALS, lex));
                 }
-                continue;
             break;
 
             case '!':
@@ -80,66 +78,105 @@ int Tokenize_File(Token_List* tokens, const char* source) {
                     ++i;
                     Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
                 }
+            break;
+
+            case '<':
+                if(source[i+1] == '=')
+                {
+                    lex[0] = LOGIC_LESS_EQUALS;
+                    ++i;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
+                }
                 else
                 {
-                    printf("TODO: Implement Unary operators!!!\n");
-                    exit(1);
+                    lex[0] = LOGIC_LESS_THAN;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
                 }
-                continue;
+            break;
+
+            case '>':
+                if(source[i+1] == '=')
+                {
+                    lex[0] = LOGIC_GREATER_EQUALS;
+                    ++i;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
+                }
+                else
+                {
+                    lex[0] = LOGIC_GREATER_THAN;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
+                }
             break;
 
             case '+':
                 lex[0] = ARITHMETIC_PLUS;
                 Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
-            continue;
+            break;
             
             case '-':
-                lex[0] = ARITHMETIC_MINUS;
-                Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
-            continue;
+                if(is_num(source[i+1]))
+                {
+                    lex[lex_i++] = source[i++];
+                    while (is_num(source[i]) || source[i] == '.')
+                    {
+                        lex[lex_i++] = source[i++];
+                    }
+                    Token_List_Push(tokens, Token_New(TOK_NUM, lex));
+					
+                    i--;
+                }
+                else
+                {
+                    lex[0] = ARITHMETIC_MINUS;
+                    Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
+                }
+            break;
             
             case '*':
                 lex[0] = ARITHMETIC_MULTIPLICATION;
                 Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
-            continue;
+            break;
             
             case '/':
                 lex[0] = ARITHMETIC_DIVISION;
                 Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
-            continue;
+            break;
 
             case '(':
                 lex[0] = '(';
                 Token_List_Push(tokens, Token_New(TOK_OPEN_PARENTHESIS, lex));
-            continue;
+            break;
 
             case ')':
                 lex[0] = ')';
                 Token_List_Push(tokens, Token_New(TOK_CLOSE_PARENTHESIS, lex));
-            continue;
+            break;
                 
             case '{':
                 lex[0] = '{';
                 Token_List_Push(tokens, Token_New(TOK_OPEN_CURLY, lex));
-            continue;
+            break;
 
             case '}':
                 lex[0] = '}';
                 Token_List_Push(tokens, Token_New(TOK_CLOSE_CURLY, lex));
-            continue;
+            break;
 
             case '"':
                 ++i;
                 while (source[i] != '"' && lex_i < sizeof(lex) - 1) {
                     lex[lex_i++] = source[i++];
                 }
+                lex[lex_i] = '\0';
                 Token_List_Push(tokens, Token_New(TOK_STR, lex));
-            continue;
+            break;
 
             default:
+            {
                 if (is_from_alphabet(source[i])) {
-					while (is_from_alphabet(source[i]))
+					while (is_from_alphabet(source[i]) || is_num(source[i]) || source[i] == '_')
                         lex[lex_i++] = source[i++];
+                    lex[lex_i] = '\0';
                     if(!strcmp(lex, "when"))
                     {
                         Token_List_Push(tokens, Token_New(TOK_WHEN, lex));
@@ -147,6 +184,10 @@ int Tokenize_File(Token_List* tokens, const char* source) {
                     else if(!strcmp(lex, "if"))
                     {
                         Token_List_Push(tokens, Token_New(TOK_IF, lex));
+                    }
+                    else if(!strcmp(lex, "while"))
+                    {
+                        Token_List_Push(tokens, Token_New(TOK_WHILE, lex));
                     }
                     else
                     {
@@ -166,10 +207,11 @@ int Tokenize_File(Token_List* tokens, const char* source) {
                     i--;
                     continue;
                 }
-                else if (!is_white_space(source[i]) && source[i] != '\0') {
+                else {
                     printf("ERROR: Unknown character found in file!!! ( %c : %d )\n", source[i], source[i]);
                     return 1;
                 }
+            }
             break;
         }
     }

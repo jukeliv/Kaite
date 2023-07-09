@@ -16,7 +16,11 @@ typedef enum {
 
 typedef enum {
     LOGIC_EQUALS,
-    LOGIC_NOT_EQUALS
+    LOGIC_NOT_EQUALS,
+    LOGIC_GREATER_THAN,
+    LOGIC_GREATER_EQUALS,
+    LOGIC_LESS_THAN,
+    LOGIC_LESS_EQUALS
 }LogicOperators;
 
 typedef enum Token_Type {
@@ -28,6 +32,7 @@ typedef enum Token_Type {
     TOK_CLOSE_PARENTHESIS,
     TOK_WHEN,
     TOK_IF,
+    TOK_WHILE,
     TOK_OPEN_CURLY,
     TOK_CLOSE_CURLY,
     TOK_ARITHMETIC,
