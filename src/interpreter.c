@@ -120,7 +120,7 @@ void Globalize_Variable(String id)
     Variable* var = Get_Variable(id, local_variables);
     if(!var)
     {
-        printf("ERROR: Couldn't find variable \"%s\"\n", id);
+        printf("ERROR: Couldn't find variable \"%s\"\n", id.content);
         exit(1);
     }
     Variable_List_Push(&global_variables, *(var));
@@ -264,7 +264,11 @@ void Interpret_Function(Expr expr)
             }
         }
 
-        system(buffer);
+        if(system(buffer) == -1)
+        {
+            printf("ERROR: Something went wrong while executing command!!!\n%s\n", buffer);
+            exit(1);
+        }
         free(buffer);
     }
     else if(!strcmp(functionName.content, "print"))
@@ -337,7 +341,12 @@ void Interpret_Function(Expr expr)
                     }
                     break;
                     case Var_Number:
-                        scanf("%f", &var->value.num);
+                    
+                        if(scanf("%f", &var->value.num) == EOF)
+                        {
+                            printf("ERROR: Couldn't read user input in \"input\" function!\n");
+                            exit(1);
+                        }
                     break;
                 }
             }

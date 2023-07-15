@@ -408,7 +408,7 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
         case TOK_IF:
         {
             Expr e = Parse_Conditional(i, tokens);
-            printf("%d\n", *i);
+            printf("%ld\n", *i);
             return e;
         }
         break;
