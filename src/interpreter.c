@@ -83,7 +83,6 @@ void Initialize_Global()
 
 Variable* Get_Variable(String variable, Variable_List* scope)
 {
-    printf("Get_Variable\n");
     if(!Variable_List_Exist(scope, variable) && !Variable_List_Exist(&global_variables, variable))
     {
         if(scope->last)
@@ -131,9 +130,7 @@ void Globalize_Variable(String id)
 
 void Interpret_Conditional_If(Expr expr, Variable_List* last)
 {
-    *expr.e.Conditional.program = Expr_Program();
-    
-    printf("%d : %s\n", expr.e.Conditional.expr->e.Literal.type, expr.e.Conditional.expr->e.Literal.value.content);
+    expr.e.Conditional.program->type = Program;
 
     Variable v = Interpret(*expr.e.Conditional.expr);
 
@@ -148,7 +145,7 @@ void Interpret_Conditional_If(Expr expr, Variable_List* last)
 }
 void Interpret_Conditional_While(Expr expr, Variable_List* last)
 {
-    *expr.e.Conditional.program = Expr_Program();
+    expr.e.Conditional.program->type = Program;
 
     Variable v = Interpret(*expr.e.Conditional.expr);
 
@@ -167,7 +164,7 @@ void Interpret_Conditional_While(Expr expr, Variable_List* last)
 
 void Interpret_Conditional_When(Expr expr, Variable_List* last)
 {
-    *expr.e.Conditional.program = Expr_Program();
+    expr.e.Conditional.program->type = Program;
 
     if(!strcmp(expr.e.Conditional.ID.content, "WINDOWS"))
     {
@@ -192,12 +189,9 @@ void Interpret_Conditional_When(Expr expr, Variable_List* last)
 
 void Interpret_Set(Expr expr)
 {
-    printf("Interpret_Set: 1\n");
     Variable v = Interpret(*expr.e.Set.literal);
-    printf("Interpret_Set: 2\n");
     v.id = expr.e.Set.ID;
 
-    printf("Interpret_Set: 3\n");
     Variable* existingVar = Get_Variable(v.id, local_variables);
     if (!existingVar)
     {
@@ -205,7 +199,6 @@ void Interpret_Set(Expr expr)
         Variable_List_Push(local_variables, var);
         existingVar = Get_Variable(v.id, local_variables);
     }
-    printf("Interpret_Set: 3\n");
 
     if (existingVar->type != v.type)
     {
@@ -289,13 +282,14 @@ void Interpret_Function(Expr expr)
             switch(v.type)
             {
                 case Var_String:
-                    printf("%s\n", v.value.str.content);
+                    printf("%s ", v.value.str.content);
                 break;
                 case Var_Number:
-                    printf("%f\n", v.value.num);
+                    printf("%g ", v.value.num);
                 break;
             }
         }
+        putchar('\n');
     }
     else if(!strcmp(functionName.content, "input"))
     {
@@ -432,29 +426,23 @@ void Interpret_Function(Expr expr)
 
 Variable Interpret_Literal(Expr node)
 {
-    printf("Interpret_Literal: 1\n");
     Variable var = {0};
-    printf("Interpret_Literal: 2\n");
 
     switch(node.e.Literal.type)
     {
         case LITERAL_String:
         {
-            printf("Interpret_Literal: 3(String)\n");
             var.type = Var_String;
             var.value.str = node.e.Literal.value;
         }
         break;
         case LITERAL_Number:
         {
-            printf("Interpret_Literal: 3(Number)\n");
             var.value.num = String_to_Float(node.e.Literal.value);
-            printf("Interpret_Literal: 4(Number : %d)\n", var.value.num);
         }
         break;
         case LITERAL_Id:
         {
-            printf("Interpret_Literal: 3(Variable)\n");
             Variable* var2 = Get_Variable(node.e.Literal.value, local_variables);
             if (!var2)
             {
@@ -465,9 +453,6 @@ Variable Interpret_Literal(Expr node)
         }
         break;
     }
-
-    printf("%d : %s\n", var.value.num, var.id.content);
-
     return var;
 }
 
@@ -526,6 +511,19 @@ Variable Interpret_Arithmetic(ArithmeticOperators op, Variable left, Variable ri
         if(left.type == Var_Number)
         {
             var.value.num = left.value.num / right.value.num;
+            return var;
+        }
+    }
+    else if (op == ARITHMETIC_MODULO)
+    {
+        if(left.type == Var_String)
+        {
+            printf("ERROR: ARITHMETIC_MODULO not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num - (right.value.num * floorf(left.value.num / right.value.num));
             return var;
         }
     }
@@ -615,6 +613,34 @@ Variable Interpret_Logic(LogicOperators op, Variable left, Variable right)
             return var;
         }
     }
+    
+    else if (op == LOGIC_AND)
+    {
+        if(left.type == Var_String)
+        {
+            printf("ERROR: LOGIC_AND not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num && right.value.num;
+            return var;
+        }
+    }
+    
+    else if (op == LOGIC_OR)
+    {
+        if(left.type == Var_String)
+        {
+            printf("ERROR: LOGIC_OR not implemented for Strings!!!\n");
+            exit(1);
+        }
+        if(left.type == Var_Number)
+        {
+            var.value.num = left.value.num || right.value.num;
+            return var;
+        }
+    }
     return var;
 }
 
@@ -648,17 +674,14 @@ Variable Interpret(Expr node)
 {
     if (node.type == Binary)
     {
-        printf("Interpret(Binary)\n");
         return Interpret_Binary(node);
     }
     else if (node.type == Literal)
     {
-        printf("Interpret(Literal)\n");
         return Interpret_Literal(node);
     }
     else if(node.type == Parenthesized)
     {
-        printf("Interpret(Parenthesized)\n");
         return Interpret(*node.e.Parenthesized.expr);
     }
     else

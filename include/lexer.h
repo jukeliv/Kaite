@@ -11,7 +11,8 @@ typedef enum {
     ARITHMETIC_PLUS,
     ARITHMETIC_MINUS,
     ARITHMETIC_DIVISION,
-    ARITHMETIC_MULTIPLICATION
+    ARITHMETIC_MULTIPLICATION,
+    ARITHMETIC_MODULO
 }ArithmeticOperators;
 
 typedef enum {
@@ -20,7 +21,9 @@ typedef enum {
     LOGIC_GREATER_THAN,
     LOGIC_GREATER_EQUALS,
     LOGIC_LESS_THAN,
-    LOGIC_LESS_EQUALS
+    LOGIC_LESS_EQUALS,
+    LOGIC_AND,
+    LOGIC_OR
 }LogicOperators;
 
 typedef enum Token_Type {

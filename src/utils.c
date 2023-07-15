@@ -58,7 +58,6 @@ bool String_Compare(String str, String str2)
 
 float String_to_Float(String str)
 {
-    printf("%s : %d\n", str.content, atof(str.content));
     return atof(str.content);
 }
 
@@ -73,7 +72,7 @@ char* read_file(const char* path) {
     size_t fs = ftell(fp);
     rewind(fp);
 
-    char* buf = malloc(fs + 1); // Increase size by 1 for null terminator
+    char* buf = calloc(fs + 1, 1); // Increase size by 1 for null terminator
     if (!buf) {
         printf("ERROR: Couldn't allocate memory for file!!!\n");
         fclose(fp);

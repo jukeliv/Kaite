@@ -108,28 +108,41 @@ int Tokenize_File(Token_List* tokens, const char* source) {
                 }
             break;
 
+            case '&':
+                if(source[i+1] == '&')
+                {
+                    lex[0] = LOGIC_AND;
+                    ++i;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
+                }
+                else
+                {
+                    printf("ERROR: Bitwise \"&\" is not implemented!!!\n");
+                    exit(1);
+                }
+            break;
+            case '|':
+                if(source[i+1] == '|')
+                {
+                    lex[0] = LOGIC_OR;
+                    ++i;
+                    Token_List_Push(tokens, Token_New(TOK_LOGIC, lex));
+                }
+                else
+                {
+                    printf("ERROR: Bitwise \"|\" is not implemented!!!\n");
+                    exit(1);
+                }
+            break;
+
             case '+':
                 lex[0] = ARITHMETIC_PLUS;
                 Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
             break;
             
             case '-':
-                if(is_num(source[i+1]))
-                {
-                    lex[lex_i++] = source[i++];
-                    while (is_num(source[i]) || source[i] == '.')
-                    {
-                        lex[lex_i++] = source[i++];
-                    }
-                    Token_List_Push(tokens, Token_New(TOK_NUM, lex));
-					
-                    i--;
-                }
-                else
-                {
-                    lex[0] = ARITHMETIC_MINUS;
-                    Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
-                }
+                lex[0] = ARITHMETIC_MINUS;
+                Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
             break;
             
             case '*':
@@ -139,6 +152,11 @@ int Tokenize_File(Token_List* tokens, const char* source) {
             
             case '/':
                 lex[0] = ARITHMETIC_DIVISION;
+                Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
+            break;
+
+            case '%':
+                lex[0] = ARITHMETIC_MODULO;
                 Token_List_Push(tokens, Token_New(TOK_ARITHMETIC, lex));
             break;
 

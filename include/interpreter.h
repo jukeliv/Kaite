@@ -5,6 +5,7 @@
 #include "parser.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 typedef enum Var_Type
 {

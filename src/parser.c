@@ -343,6 +343,7 @@ Expr Parse_Code_Block(size_t* i, Token_List* tokens)
     Expr block = Expr_Program();
     (*i)++;
     size_t end = *i;
+
     for(;tokens->content[end].type != TOK_CLOSE_CURLY; ++end);
 
     for(;*i < end; (*i)++)
@@ -406,7 +407,9 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
         }
         case TOK_IF:
         {
-            return Parse_Conditional(i, tokens);
+            Expr e = Parse_Conditional(i, tokens);
+            printf("%d\n", *i);
+            return e;
         }
         break;
         case TOK_WHILE:
@@ -457,9 +460,9 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
 
 void Parse_Program(Expr* program, Token_List* tokens)
 {
-    for(size_t i = 0; i < tokens->size; ++i)
+    for(size_t i = 0; i < tokens->size;++i)
     {
-        printf("%d : %s\n", tokens->content[i].type, tokens->content[i].str.content);
-		Expr_List_Push(&program->e.Program.program, Parse_Tokens(&i, tokens));
+        Expr e = Parse_Tokens(&i, tokens);
+		Expr_List_Push(&program->e.Program.program, e);
 	}
 }
