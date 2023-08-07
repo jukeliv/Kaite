@@ -1,1 +1,52 @@
-print(0.1+0.2)
+op = 0
+a = 0
+b = 0
+exit = 0
+print("Welcome to Calculator")
+
+OP_ADDITION = 0
+OP_SUBTRACTION = 1
+OP_MULTIPLICATION = 2
+OP_DIVISION = 3
+OP_EXIT = 4
+
+while exit == 0
+{
+    print("Select the operation you want to do:")
+    print("    0 - Addition")
+    print("    1 - Subtraction")
+    print("    2 - Multiplication")
+    print("    3 - Division")
+    print("    4 - Exit")
+
+    input(op)
+
+    if op == OP_EXIT
+    {
+        exit = 1
+    }
+    else
+    {
+        print("Input first number:")
+        input(a)
+
+        print("Input second number:")
+        input(b)
+    }
+    if op == OP_ADDITION
+    {
+        print(a+b)
+    }
+    if op == OP_SUBTRACTION
+    {
+        print(a-b)
+    }
+    if op == OP_MULTIPLICATION
+    {
+        print(a*b)
+    }
+    if op == OP_DIVISION
+    {
+        print(a/b)
+    }
+}

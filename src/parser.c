@@ -68,6 +68,7 @@ Expr Expr_Function(String ID, Expr group)
     expr.type = Function;
     expr.e.Function.ID = ID;
 
+    expr.e.Function.group = NULL;
     expr.e.Function.group = malloc(sizeof(Expr));
     *expr.e.Function.group = group;
 
@@ -184,6 +185,8 @@ Expr Expr_Conditional_When(String ID, Expr program)
 
     expr.e.Conditional.type = CONDITIONAL_When;
     
+    expr.e.Conditional.expr = NULL;
+    
     expr.e.Conditional.program = malloc(sizeof(Expr));
     *expr.e.Conditional.program = program;
 
@@ -199,6 +202,21 @@ Expr Expr_Conditional_If(Expr e, Expr program)
 
     expr.e.Conditional.expr = malloc(sizeof(Expr));
     *expr.e.Conditional.expr = e;
+
+    expr.e.Conditional.program = malloc(sizeof(Expr));
+    *expr.e.Conditional.program = program;
+
+    return expr;
+}
+
+Expr Expr_Conditional_Else(Expr program)
+{
+    Expr expr;
+    expr.type = Conditional;
+
+    expr.e.Conditional.type = CONDITIONAL_Else;
+
+    expr.e.Conditional.expr = NULL;
 
     expr.e.Conditional.program = malloc(sizeof(Expr));
     *expr.e.Conditional.program = program;
@@ -230,7 +248,18 @@ Expr Parse_Group(size_t* i, Token_List* tokens)
     (*i)++;  // it needs to skip the first TOK_OPEN_PARENTHESIS so it can parse properly
     
     size_t end = *i;
-    for(;tokens->content[end].type != TOK_CLOSE_PARENTHESIS; ++end);
+    unsigned int indentation = 0;
+    for(;!(tokens->content[end].type == TOK_CLOSE_PARENTHESIS && indentation == 0); ++end)
+    {
+        if(tokens->content[end].type == TOK_OPEN_PARENTHESIS)
+        {
+            indentation++;
+        }
+        else if(tokens->content[end].type == TOK_CLOSE_PARENTHESIS)
+        {
+            indentation--;
+        }
+    }
 
     for(; *i < end; (*i)++)
     {
@@ -337,19 +366,32 @@ Expr Parse_Code_Block(size_t* i, Token_List* tokens)
 {
     if(tokens->content[(*i)].type != TOK_OPEN_CURLY)
     {
-        printf("ERROR: You are not opening code block ( %d : %s )\n", tokens->content[(*i)].type, tokens->content[(*i)].str.content);
+        printf("ERROR: You are not opening code block ( line: %d. %d : %s )\n", tokens->content[(*i)].line, tokens->content[(*i)].type, tokens->content[(*i)].str.content);
         exit(1);
     }
+
     Expr block = Expr_Program();
+    
     (*i)++;
+
     size_t end = *i;
 
-    for(;tokens->content[end].type != TOK_CLOSE_CURLY; ++end);
+    unsigned int indentation = 0;
+    for(;tokens->content[end].type != TOK_CLOSE_CURLY && indentation > 0; ++end)
+    {
+        Token tok = tokens->content[end];
+        if(tok.type == TOK_OPEN_CURLY)
+            indentation++;
+        if(tok.type == TOK_CLOSE_CURLY)
+            indentation--;
+    }
 
     for(;*i < end; (*i)++)
     {
         Expr_List_Push(&block.e.Program.program, Parse_Tokens(i, tokens));
     }
+    *i = end;
+    
     return block;
 }
 
@@ -360,25 +402,35 @@ Expr Parse_Conditional(size_t* i, Token_List* tokens)
     {
         case TOK_IF:
             type = CONDITIONAL_If;
-            break;
+        break;
+        case TOK_ELSE:
+            type = CONDITIONAL_Else;
+        break;
         case TOK_WHILE:
             type = CONDITIONAL_While;
-            break;
+        break;
         case TOK_WHEN:
             type = CONDITIONAL_When;
-            break;
+        break;
         default:
             printf("ERROR: Invalid conditional type (%d)\n", tokens->content[(*i)].type);
             exit(1);
-    }
+        break;
+    } 
+
     (*i)++;
 
     if (type == CONDITIONAL_If || type == CONDITIONAL_While)
     {
         Expr bin = Parse(i, tokens);
         (*i)++;
+
         return type == CONDITIONAL_If ? Expr_Conditional_If(bin, Parse_Code_Block(i, tokens)) :
                                         Expr_Conditional_While(bin, Parse_Code_Block(i, tokens));
+    }
+    else if (type == CONDITIONAL_Else)
+    {
+        return Expr_Conditional_Else(Parse_Code_Block(i, tokens));
     }
     else if (type == CONDITIONAL_When)
     {
@@ -397,24 +449,33 @@ Expr Parse_Conditional(size_t* i, Token_List* tokens)
     }
 }
 
+#define print_token(index, tokens) printf("line: %d. %d : %s\n", tokens->content[index].line, tokens->content[index].type, tokens->content[index].str.content)
 Expr Parse_Tokens(size_t* i, Token_List* tokens)
 {
     switch(tokens->content[*i].type)
     {
         case TOK_WHEN:
         {
-            return Parse_Conditional(i, tokens);
+            Expr e = Parse_Conditional(i, tokens);
+            return e;
         }
+        break;
         case TOK_IF:
         {
             Expr e = Parse_Conditional(i, tokens);
-            printf("%ld\n", *i);
+            return e;
+        }
+        break;
+        case TOK_ELSE:
+        {
+            Expr e = Parse_Conditional(i, tokens);
             return e;
         }
         break;
         case TOK_WHILE:
         {
-            return Parse_Conditional(i, tokens);
+            Expr e = Parse_Conditional(i, tokens);
+            return e;
         }
         break;
 		case TOK_ID:
@@ -447,9 +508,13 @@ Expr Parse_Tokens(size_t* i, Token_List* tokens)
             }
         }
         break;
+        case TOK_CLOSE_CURLY:
+            printf("ERROR: What the fuck? ( line: %d )\n", tokens->content[*i].line);
+            exit(1);
+        break;
         default:
         {
-            printf("TODO: Think about another error message ( %d )\n", *i);
+            printf("TODO: Think about another error message ( line: %d )\n", tokens->content[*i].line);
             printf("%d : %s", tokens->content[*i].type, tokens->content[*i].str.content);
             exit(1);
         }

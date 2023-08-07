@@ -130,11 +130,9 @@ void Globalize_Variable(String id)
 
 void Interpret_Conditional_If(Expr expr, Variable_List* last)
 {
-    expr.e.Conditional.program->type = Program;
-
     Variable v = Interpret(*expr.e.Conditional.expr);
 
-    if (v.type == Var_Number && v.value.num != 0) {
+    if (v.type == Var_Number && v.value.num) {
         Interpret_Program(*expr.e.Conditional.program, last);
     }
     else if (v.type == Var_String)
@@ -143,6 +141,41 @@ void Interpret_Conditional_If(Expr expr, Variable_List* last)
         exit(1);
     }
 }
+
+void Interpret_Conditional_Else(Expr expr, Expr last_conditional, Variable_List* last)
+{
+    if(last_conditional.type != Conditional)
+    {
+        printf("ERROR: Can't use \"else\" without a conditinal before it\n");
+        exit(1);
+    }
+    
+    if(last_conditional.e.Conditional.type == CONDITIONAL_Else)
+    {
+        printf("ERROR: Can't use \"else\" on an \"else\" statement\n");
+        exit(1);
+    }
+
+    if(last_conditional.e.Conditional.type != CONDITIONAL_When)
+    {
+        Variable v = Interpret(*last_conditional.e.Conditional.expr);
+
+        if (v.type == Var_Number && !v.value.num) {
+            Interpret_Program(*expr.e.Conditional.program, last);
+        }
+        else if (v.type == Var_String)
+        {
+            printf("ERROR: Can't interpret if by passing an String\n");
+            exit(1);
+        }
+    }
+    else
+    {
+        printf("TODO: Implement \"else\" for \"when\" statements");
+        exit(1);
+    }
+}
+
 void Interpret_Conditional_While(Expr expr, Variable_List* last)
 {
     expr.e.Conditional.program->type = Program;
@@ -155,7 +188,7 @@ void Interpret_Conditional_While(Expr expr, Variable_List* last)
         exit(1);
     }
 
-    while(v.value.num != 0)
+    while(v.value.num)
     {
         Interpret_Program(*expr.e.Conditional.program, last);
         v = Interpret(*expr.e.Conditional.expr);
@@ -727,6 +760,9 @@ void Interpret_Program(Expr program, Variable_List* last)
                     {
                         Interpret_Conditional_If(expr, local_variables);
                     }
+                    break;
+                    case CONDITIONAL_Else:
+                        Interpret_Conditional_Else(expr, program.e.Program.program.content[i-1],local_variables);
                     break;
                     case CONDITIONAL_While:
                     {

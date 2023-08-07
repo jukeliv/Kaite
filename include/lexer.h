@@ -35,6 +35,7 @@ typedef enum Token_Type {
     TOK_CLOSE_PARENTHESIS,
     TOK_WHEN,
     TOK_IF,
+    TOK_ELSE,
     TOK_WHILE,
     TOK_OPEN_CURLY,
     TOK_CLOSE_CURLY,
@@ -45,6 +46,7 @@ typedef enum Token_Type {
 typedef struct Token {
     Token_Type type;
     String str;
+    int line;
 } Token;
 
 typedef struct Token_List {
@@ -53,7 +55,9 @@ typedef struct Token_List {
     Token* content;
 } Token_List;
 
-Token Token_New(Token_Type type, const char* str);
+Token Token_New(int line, Token_Type type, const char* str);
+
+Token_Type Token_Type_From_Word(const char* word);
 
 void Token_List_Init(Token_List* tokens);
 void Token_List_Push(Token_List* tokens, Token tok);

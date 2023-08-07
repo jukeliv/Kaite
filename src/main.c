@@ -36,6 +36,33 @@ Variable_List Execute_Code(const char* source)
 	{
 		exit(1);
 	}
+
+	// test file
+
+	int indentation = 0;
+	int start = 0;
+	int end = 0;
+
+	for(int i = 0; i < tokens.size; ++i)
+	{
+		if(tokens.content[i].type == TOK_OPEN_CURLY)
+		{
+			start = i;
+			indentation++;
+		}
+		if(tokens.content[i].type == TOK_CLOSE_CURLY)
+		{
+			end = i;
+			indentation--;
+		}
+	}
+
+	if(indentation != 0)
+	{
+		printf("ERROR: You forgot to close a code block! ( line: %d )\n", tokens.content[start].line);
+		exit(1);
+	}
+
 	Expr program = Expr_Program();
 
 	Parse_Program(&program, &tokens);
@@ -56,6 +83,8 @@ int main(int argc, char** argv)
 	}
 
 	Execute_Code(concat_files(argc, argv));
+
+	break;
 
 	return 0;
 }

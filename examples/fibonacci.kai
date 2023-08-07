@@ -1,12 +1,22 @@
 a = 1
 b = 1
 i = 0
+iterations = 0
+print("How many numbers you want?")
+input(iterations)
 
-while i < 10
+if iterations <= 0
 {
-    print(b)
-    acc = a + b
-    a = b
-    b = acc
-    i = i + 1
+    print("Wrong number of iterations")
+}
+else
+{
+    while i < iterations
+    {
+        print(b)
+        acc = a + b
+        a = b
+        b = acc
+        i = i + 1
+    }
 }

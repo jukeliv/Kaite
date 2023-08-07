@@ -44,6 +44,7 @@ typedef enum
 typedef enum
 {
     CONDITIONAL_If,
+    CONDITIONAL_Else,
     CONDITIONAL_When,
     CONDITIONAL_While
 }Conditional_Type;
