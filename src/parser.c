@@ -1,4 +1,4 @@
-#include "..\include\parser.h"
+#include <parser.h>
 
 void Expr_List_Init(Expr_List* list)
 {
@@ -101,7 +101,7 @@ Expr Expr_Literal(Token tok)
 
         default:
         {
-            printf("ERROR: Can't set Literal to Token Type!!! (%d : %s )\n", tok.type, tok.str.content);
+            printf("ERROR: Token is not a literal!!! (%d : %s)\n", tok.type, tok.str.content);
             exit(1);
         }
         break;

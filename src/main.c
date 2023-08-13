@@ -1,17 +1,18 @@
-#include "..\include\lexer.h"
-#include "..\include\parser.h"
-#include "..\include\interpreter.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-void Usage()
+#include <lexer.h>
+#include <parser.h>
+#include <interpreter.h>
+
+static void Usage()
 {
 	printf("Kaite Usage\n\t.\\kaite <INPUT_FILES>\n\n");
 	printf("ERROR: No input file passed\n");
 }
 
-const char* concat_files(int argc, char** argv)
+static const char* Concat_Files(int argc, char** argv)
 {
 	size_t size = 0;
 	for(int i = 1; i < argc; ++i)
@@ -27,24 +28,20 @@ const char* concat_files(int argc, char** argv)
 	return buf;
 }
 
-Variable_List Execute_Code(const char* source)
+static Variable_List Execute_Code(const char* source)
 {
 	Token_List tokens;
 	Token_List_Init(&tokens);
 
 	Tokenize_File(&tokens, source);
-	//printf("Tokenizer: Success\n");
 
 	Expr program = Expr_Program();
 
 	Parse_Program(&program, &tokens);
 	Token_List_Free(&tokens);
-	//printf("Parser: Success\n");
 
-	Initialize_Global(); // initialize global scope
+	Initialize_Global();
 	Interpret_Program(program);
-    
-	//printf("Interpreter: Success\n");
 }
 
 int main(int argc, char** argv)
@@ -56,7 +53,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	Execute_Code(concat_files(argc, argv));
+	Execute_Code(Concat_Files(argc, argv));
 
 	return 0;
 }

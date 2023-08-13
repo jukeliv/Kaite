@@ -1,4 +1,4 @@
-#include "..\include\utils.h"
+#include <utils.h>
 
 String String_CStr(const char* cstr) {
     String str;

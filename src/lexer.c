@@ -1,4 +1,4 @@
-#include "..\include\lexer.h"
+#include <lexer.h>
 
 Token Token_New(Token_Type type, const char* str) {
     Token tok;

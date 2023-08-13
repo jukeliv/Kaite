@@ -1,4 +1,4 @@
-#include "..\include\interpreter.h"
+#include <interpreter.h>
 
 Variable_List global_variables;
 Variable_List* local_variables;
