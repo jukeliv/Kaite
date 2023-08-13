@@ -1,4 +1,4 @@
-#include "..\include\parser.h"
+#include <parser.h>
 
 void Expr_List_Init(Expr_List* list)
 {

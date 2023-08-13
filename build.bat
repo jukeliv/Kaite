@@ -5,6 +5,7 @@ windres res\kaite.rc -O coff -o res\kaite.res
 
 set src=src\utils.c src\lexer.c src\parser.c src\interpreter.c src\main.c
 set icon=res\kaite.res
+set include=include
 REM TODO - use -Wall and -Wextra
 set flags=-O2
 
@@ -16,4 +17,4 @@ if exist bin\ (
 )
 
 :build
-gcc -o bin\kaite.exe %src% %icon% %flags%
+gcc -o bin\kaite.exe %src% %icon% %flags% -I %include%\
